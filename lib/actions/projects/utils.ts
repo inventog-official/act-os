@@ -1,6 +1,8 @@
 'use server'
 
 import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { db } from '@/db'
+import { projectActivities } from '@/db/schema'
 
 export async function getCurrentUser() {
   const supabase = await createServerSupabaseClient()
@@ -16,15 +18,16 @@ export async function createProjectActivity(params: {
   metadata?: Record<string, unknown>
 }) {
   const user = await getCurrentUser()
-  const supabase = await createServerSupabaseClient()
 
-  const { error } = await supabase.from('project_activities').insert({
-    project_id: params.project_id,
-    user_id: user.id,
-    action: params.action,
-    description: params.description || null,
-    metadata: params.metadata || {},
-  })
-
-  if (error) console.error('Project activity insert error:', error)
+  try {
+    await db.insert(projectActivities).values({
+      projectId: params.project_id,
+      userId: user.id,
+      action: params.action,
+      description: params.description || null,
+      metadata: params.metadata || {},
+    })
+  } catch (e) {
+    console.error('Project activity insert error:', e)
+  }
 }

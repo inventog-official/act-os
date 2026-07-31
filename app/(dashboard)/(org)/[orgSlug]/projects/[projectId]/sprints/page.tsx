@@ -20,7 +20,7 @@ export default function SprintsPage({ params }: { params: Promise<{ orgSlug: str
   const { orgSlug, projectId } = use(params)
   const router = useRouter()
   const supabase = createClient()
-  const { currentOrganization } = useOrganizationStore()
+  const currentOrganization = useOrganizationStore((s) => s.currentOrganization)
   const [sprints, setSprints] = useState<any[]>([])
   const [tasks, setTasks] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)

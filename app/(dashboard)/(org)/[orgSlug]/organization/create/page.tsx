@@ -17,8 +17,8 @@ import { slugify } from '@/lib/utils'
 export default function CreateOrganizationPage() {
   const router = useRouter()
   const supabase = createClient()
-  const { user } = useAuthStore()
-  const { setCurrentOrganization } = useOrganizationStore()
+  const user = useAuthStore((s) => s.user)
+  const setCurrentOrganization = useOrganizationStore((s) => s.setCurrentOrganization)
   const [isLoading, setIsLoading] = useState(false)
 
   const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<OrganizationInput>({
@@ -99,19 +99,19 @@ export default function CreateOrganizationPage() {
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <Input
               label="Organization Name *"
-              placeholder="Acme Corp"
+              placeholder="Demo Corp"
               error={errors.name?.message}
               {...register('name', { onChange: handleNameChange })}
             />
             <Input
               label="Organization Slug *"
-              placeholder="acme-corp"
+              placeholder="demo-corp"
               error={errors.slug?.message}
               {...register('slug')}
             />
             <Input
               label="Website"
-              placeholder="https://acmecorp.com"
+              placeholder="https://democorp.com"
               error={errors.website?.message}
               {...register('website')}
             />

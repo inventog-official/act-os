@@ -28,7 +28,7 @@ const activityTypes = [
 export default function ActivitiesPage({ params }: { params: Promise<{ orgSlug: string }> }) {
   const { orgSlug } = use(params)
   const supabase = createClient()
-  const { currentOrganization } = useOrganizationStore()
+  const currentOrganization = useOrganizationStore((s) => s.currentOrganization)
 
   const [activities, setActivities] = useState<CrmActivity[]>([])
   const [typeFilter, setTypeFilter] = useState('all')

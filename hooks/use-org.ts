@@ -5,34 +5,44 @@ import { createClient } from '@/lib/supabase/client'
 import { useOrganizationStore } from '@/lib/store'
 
 export function useOrganization(orgSlug?: string) {
-  const supabase = createClient()
-  const store = useOrganizationStore()
+  const currentOrganization = useOrganizationStore((s) => s.currentOrganization)
+  const workspaces = useOrganizationStore((s) => s.workspaces)
+  const teams = useOrganizationStore((s) => s.teams)
+  const members = useOrganizationStore((s) => s.members)
+  const isLoading = useOrganizationStore((s) => s.isLoading)
 
   useEffect(() => {
-    async function load() {
-      if (!orgSlug) return
+    if (!orgSlug) return
+    let cancelled = false
+    const supabase = createClient()
 
+    async function load() {
       const { data: org } = await supabase
         .from('organizations')
         .select('*')
         .eq('slug', orgSlug)
         .single()
 
-      if (org) {
-        store.setCurrentOrganization(org as any)
-        store.setWorkspaces([])
-        store.setTeams([])
-        store.setMembers([])
-      }
+      if (cancelled || !org) return
+
+      const store = useOrganizationStore.getState()
+      store.setCurrentOrganization(org as any)
+      store.setWorkspaces([])
+      store.setTeams([])
+      store.setMembers([])
       store.setLoading(false)
     }
 
     load()
-  }, [orgSlug, supabase, store])
+
+    return () => {
+      cancelled = true
+    }
+  }, [orgSlug])
 
   const switchOrganization = useCallback((org: any) => {
-    store.setCurrentOrganization(org)
-  }, [store])
+    useOrganizationStore.getState().setCurrentOrganization(org)
+  }, [])
 
-  return { ...store, switchOrganization }
+  return { currentOrganization, workspaces, teams, members, isLoading, switchOrganization }
 }

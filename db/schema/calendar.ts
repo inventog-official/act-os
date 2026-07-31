@@ -1,0 +1,251 @@
+import { pgTable, uuid, text, integer, boolean, jsonb, timestamp, date, time, unique } from 'drizzle-orm/pg-core'
+
+export const calendarEventParticipants = pgTable('calendar_event_participants', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  eventId: uuid('event_id').notNull(),
+  userId: uuid('user_id'),
+  email: text('email'),
+  name: text('name'),
+  status: text('status').notNull().default('pending'),
+  role: text('role').notNull().default('attendee'),
+  organizationId: uuid('organization_id').notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
+})
+
+export const calendarAvailability = pgTable('calendar_availability', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').notNull(),
+  organizationId: uuid('organization_id').notNull(),
+  dayOfWeek: integer('day_of_week').notNull(),
+  startTime: time('start_time').notNull(),
+  endTime: time('end_time').notNull(),
+  timezone: text('timezone').notNull().default('UTC'),
+  isActive: boolean('is_active').default(true),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+}, t => ({ unique: unique().on(t.userId, t.dayOfWeek) }))
+
+export const meetings = pgTable('meetings', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  title: text('title').notNull(),
+  description: text('description'),
+  agenda: text('agenda'),
+  meetingType: text('meeting_type').notNull().default('internal'),
+  status: text('status').notNull().default('scheduled'),
+  startTime: timestamp('start_time').notNull(),
+  endTime: timestamp('end_time').notNull(),
+  timezone: text('timezone').notNull().default('UTC'),
+  durationMinutes: integer('duration_minutes'),
+  location: text('location'),
+  meetingLink: text('meeting_link'),
+  organizerId: uuid('organizer_id'),
+  calendarEventId: uuid('calendar_event_id'),
+  companyId: uuid('company_id'),
+  contactId: uuid('contact_id'),
+  dealId: uuid('deal_id'),
+  leadId: uuid('lead_id'),
+  projectId: uuid('project_id'),
+  taskId: uuid('task_id'),
+  employeeId: uuid('employee_id'),
+  provider: text('provider'),
+  providerMeetingId: text('provider_meeting_id'),
+  organizationId: uuid('organization_id').notNull(),
+  workspaceId: uuid('workspace_id'),
+  createdBy: uuid('created_by').notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+  deletedAt: timestamp('deleted_at'),
+})
+
+export const meetingParticipants = pgTable('meeting_participants', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  meetingId: uuid('meeting_id').notNull(),
+  userId: uuid('user_id'),
+  email: text('email'),
+  name: text('name'),
+  status: text('status').notNull().default('pending'),
+  role: text('role').notNull().default('attendee'),
+  organizationId: uuid('organization_id').notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
+})
+
+export const meetingNotes = pgTable('meeting_notes', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  meetingId: uuid('meeting_id').notNull(),
+  title: text('title').notNull().default('Meeting Notes'),
+  content: text('content'),
+  documentId: uuid('document_id'),
+  mentions: uuid('mentions').array().default([]),
+  organizationId: uuid('organization_id').notNull(),
+  createdBy: uuid('created_by').notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+  deletedAt: timestamp('deleted_at'),
+})
+
+export const meetingDecisions = pgTable('meeting_decisions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  meetingId: uuid('meeting_id').notNull(),
+  decision: text('decision').notNull(),
+  context: text('context'),
+  ownerId: uuid('owner_id'),
+  decisionDate: date('decision_date').notNull(),
+  projectId: uuid('project_id'),
+  companyId: uuid('company_id'),
+  dealId: uuid('deal_id'),
+  documentId: uuid('document_id'),
+  status: text('status').notNull().default('open'),
+  organizationId: uuid('organization_id').notNull(),
+  createdBy: uuid('created_by').notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+  deletedAt: timestamp('deleted_at'),
+})
+
+export const meetingActionItems = pgTable('meeting_action_items', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  meetingId: uuid('meeting_id').notNull(),
+  description: text('description').notNull(),
+  assigneeId: uuid('assignee_id'),
+  dueDate: timestamp('due_date'),
+  status: text('status').notNull().default('open'),
+  taskId: uuid('task_id'),
+  organizationId: uuid('organization_id').notNull(),
+  createdBy: uuid('created_by').notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+  deletedAt: timestamp('deleted_at'),
+})
+
+export const communicationThreads = pgTable('communication_threads', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  threadType: text('thread_type').notNull().default('direct'),
+  entityType: text('entity_type'),
+  entityId: uuid('entity_id'),
+  title: text('title'),
+  isArchived: boolean('is_archived').default(false),
+  organizationId: uuid('organization_id').notNull(),
+  workspaceId: uuid('workspace_id'),
+  createdBy: uuid('created_by').notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+  deletedAt: timestamp('deleted_at'),
+})
+
+export const communicationThreadMembers = pgTable('communication_thread_members', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  threadId: uuid('thread_id').notNull(),
+  userId: uuid('user_id').notNull(),
+  lastReadAt: timestamp('last_read_at').defaultNow(),
+  createdAt: timestamp('created_at').defaultNow(),
+}, t => ({ unique: unique().on(t.threadId, t.userId) }))
+
+export const communicationMessages = pgTable('communication_messages', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  threadId: uuid('thread_id').notNull(),
+  senderId: uuid('sender_id').notNull(),
+  body: text('body').notNull(),
+  messageType: text('message_type').notNull().default('message'),
+  parentId: uuid('parent_id'),
+  mentions: uuid('mentions').array().default([]),
+  attachmentUrl: text('attachment_url'),
+  emailId: uuid('email_id'),
+  organizationId: uuid('organization_id').notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+  deletedAt: timestamp('deleted_at'),
+})
+
+export const emailConnections = pgTable('email_connections', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').notNull(),
+  organizationId: uuid('organization_id').notNull(),
+  provider: text('provider').notNull(),
+  emailAddress: text('email_address').notNull(),
+  displayName: text('display_name'),
+  accessTokenCiphertext: text('access_token_ciphertext').notNull(),
+  refreshTokenCiphertext: text('refresh_token_ciphertext'),
+  status: text('status').notNull().default('disconnected'),
+  lastSyncedAt: timestamp('last_synced_at'),
+  syncStatus: text('sync_status').default('idle'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+  deletedAt: timestamp('deleted_at'),
+})
+
+export const emailMessages = pgTable('email_messages', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  threadId: uuid('thread_id'),
+  provider: text('provider').notNull(),
+  externalId: text('external_id'),
+  subject: text('subject').notNull(),
+  body: text('body'),
+  fromEmail: text('from_email').notNull(),
+  fromName: text('from_name'),
+  toEmails: text('to_emails').array().default([]),
+  ccEmails: text('cc_emails').array().default([]),
+  bccEmails: text('bcc_emails').array().default([]),
+  inReplyTo: text('in_reply_to'),
+  direction: text('direction').notNull().default('outbound'),
+  status: text('status').notNull().default('sent'),
+  sentAt: timestamp('sent_at'),
+  receivedAt: timestamp('received_at'),
+  organizationId: uuid('organization_id').notNull(),
+  createdBy: uuid('created_by').notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+  deletedAt: timestamp('deleted_at'),
+})
+
+export const calendarProviderConnections = pgTable('calendar_provider_connections', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').notNull(),
+  organizationId: uuid('organization_id').notNull(),
+  provider: text('provider').notNull(),
+  externalCalendarId: text('external_calendar_id'),
+  accessTokenCiphertext: text('access_token_ciphertext').notNull(),
+  refreshTokenCiphertext: text('refresh_token_ciphertext'),
+  status: text('status').notNull().default('disconnected'),
+  lastSyncAt: timestamp('last_sync_at'),
+  syncStatus: text('sync_status').default('idle'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+  deletedAt: timestamp('deleted_at'),
+})
+
+export const calendarSyncLogs = pgTable('calendar_sync_logs', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  organizationId: uuid('organization_id').notNull(),
+  userId: uuid('user_id').notNull(),
+  provider: text('provider').notNull(),
+  eventId: uuid('event_id'),
+  externalEventId: text('external_event_id'),
+  syncType: text('sync_type').notNull().default('import'),
+  status: text('status').notNull().default('success'),
+  error: text('error'),
+  createdAt: timestamp('created_at').defaultNow(),
+})
+
+export const meetingActivities = pgTable('meeting_activities', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  organizationId: uuid('organization_id').notNull(),
+  userId: uuid('user_id').notNull(),
+  meetingId: uuid('meeting_id'),
+  action: text('action').notNull(),
+  resource: text('resource').notNull(),
+  resourceId: uuid('resource_id'),
+  metadata: jsonb('metadata').default('{}'),
+  createdAt: timestamp('created_at').defaultNow(),
+})
+
+export const calendarActivities = pgTable('calendar_activities', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  organizationId: uuid('organization_id').notNull(),
+  userId: uuid('user_id').notNull(),
+  eventId: uuid('event_id'),
+  action: text('action').notNull(),
+  resource: text('resource').notNull(),
+  resourceId: uuid('resource_id'),
+  metadata: jsonb('metadata').default('{}'),
+  createdAt: timestamp('created_at').defaultNow(),
+})

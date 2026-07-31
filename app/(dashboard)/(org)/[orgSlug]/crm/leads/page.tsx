@@ -2,7 +2,7 @@
 
 import { useState, use, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, Upload, Download, Trash2, Search, ArrowUpDown, MoreHorizontal, FileSpreadsheet, Loader2 } from 'lucide-react'
+import { Plus, Upload, Download, Trash2, Search, ArrowUpDown, MoreHorizontal, FileSpreadsheet, LayoutGrid, List, Loader2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useOrganizationStore } from '@/lib/store'
 import { DashboardShell } from '@/components/layout/dashboard-shell'
@@ -10,6 +10,7 @@ import { CrmShell } from '@/components/crm/crm-shell'
 import { LeadTable } from '@/components/crm/lead-table'
 import { LeadForm } from '@/components/crm/lead-form'
 import { LeadDetailDialog } from '@/components/crm/lead-detail'
+import { LeadKanbanBoard } from '@/components/crm/lead-kanban-board'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
@@ -22,11 +23,13 @@ export default function LeadsPage({ params }: { params: Promise<{ orgSlug: strin
   const { orgSlug } = use(params)
   const router = useRouter()
   const supabase = createClient()
-  const { currentOrganization } = useOrganizationStore()
+  const currentOrganization = useOrganizationStore((s) => s.currentOrganization)
 
   const [leads, setLeads] = useState<CrmLead[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
+  const [sourceFilter, setSourceFilter] = useState('all')
+  const [assigneeFilter, setAssigneeFilter] = useState('all')
   const [isLoading, setIsLoading] = useState(true)
   const [showAddDialog, setShowAddDialog] = useState(false)
   const [editingLead, setEditingLead] = useState<CrmLead | null>(null)
@@ -34,6 +37,7 @@ export default function LeadsPage({ params }: { params: Promise<{ orgSlug: strin
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [selectedLead, setSelectedLead] = useState<CrmLead | null>(null)
   const [deletingLeadId, setDeletingLeadId] = useState<string | null>(null)
+  const [viewMode, setViewMode] = useState<'table' | 'kanban'>('table')
 
   const fetchLeads = useCallback(async () => {
     if (!currentOrganization) return
@@ -130,6 +134,19 @@ export default function LeadsPage({ params }: { params: Promise<{ orgSlug: strin
     }
   }
 
+  const handleMoveLead = async (leadId: string, status: string) => {
+    try {
+      const { error } = await supabase
+        .from('crm_leads')
+        .update({ status, updated_by: (await supabase.auth.getUser()).data.user?.id })
+        .eq('id', leadId)
+      if (error) throw error
+      fetchLeads()
+    } catch (err: any) {
+      toast.error(err.message)
+    }
+  }
+
   const handleExport = () => {
     exportToCsv(leads, 'leads-export', [
       { key: 'first_name', header: 'First Name' },
@@ -177,14 +194,22 @@ export default function LeadsPage({ params }: { params: Promise<{ orgSlug: strin
   }
 
   const filteredLeads = leads.filter(lead => {
-    if (!searchQuery) return true
-    const q = searchQuery.toLowerCase()
-    return (
-      lead.first_name.toLowerCase().includes(q) ||
-      lead.last_name.toLowerCase().includes(q) ||
-      lead.email?.toLowerCase().includes(q) ||
-      lead.company_name?.toLowerCase().includes(q)
-    )
+    if (!searchQuery && sourceFilter === 'all' && assigneeFilter === 'all') return true
+
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase()
+      const matchesSearch =
+        lead.first_name.toLowerCase().includes(q) ||
+        lead.last_name.toLowerCase().includes(q) ||
+        lead.email?.toLowerCase().includes(q) ||
+        lead.company_name?.toLowerCase().includes(q)
+      if (!matchesSearch) return false
+    }
+
+    if (sourceFilter !== 'all' && lead.lead_source !== sourceFilter) return false
+    if (assigneeFilter !== 'all' && lead.assigned_to !== assigneeFilter) return false
+
+    return true
   })
 
   if (isLoading) {
@@ -254,14 +279,54 @@ export default function LeadsPage({ params }: { params: Promise<{ orgSlug: strin
                 <SelectItem value="lost">Lost</SelectItem>
               </SelectContent>
             </Select>
+            <Select value={sourceFilter} onValueChange={setSourceFilter}>
+              <SelectTrigger className="w-[140px]"><SelectValue placeholder="Source" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Sources</SelectItem>
+                <SelectItem value="website">Website</SelectItem>
+                <SelectItem value="referral">Referral</SelectItem>
+                <SelectItem value="linkedin">LinkedIn</SelectItem>
+                <SelectItem value="email">Email</SelectItem>
+                <SelectItem value="phone">Phone</SelectItem>
+                <SelectItem value="event">Event</SelectItem>
+                <SelectItem value="other">Other</SelectItem>
+              </SelectContent>
+            </Select>
+            <div className="flex items-center border border-zinc-200 dark:border-zinc-800 rounded-lg overflow-hidden">
+              <Button
+                variant={viewMode === 'table' ? 'default' : 'ghost'}
+                size="sm"
+                className="rounded-none h-8"
+                onClick={() => setViewMode('table')}
+              >
+                <List className="h-4 w-4" />
+              </Button>
+              <Button
+                variant={viewMode === 'kanban' ? 'default' : 'ghost'}
+                size="sm"
+                className="rounded-none h-8"
+                onClick={() => setViewMode('kanban')}
+              >
+                <LayoutGrid className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
 
+          {viewMode === 'table' ? (
           <LeadTable
             leads={filteredLeads}
             onEdit={(lead) => setEditingLead(lead)}
             onDelete={(id) => { setDeletingLeadId(id); setShowDeleteConfirm(true) }}
             onRowClick={(lead) => setSelectedLead(lead)}
           />
+
+          ) : (
+            <LeadKanbanBoard
+              leads={filteredLeads}
+              onLeadClick={(lead) => setSelectedLead(lead)}
+              onMoveLead={handleMoveLead}
+            />
+          )}
 
           <LeadDetailDialog
             lead={selectedLead}

@@ -19,7 +19,7 @@ export default function MilestonesPage({ params }: { params: Promise<{ orgSlug: 
   const { orgSlug, projectId } = use(params)
   const router = useRouter()
   const supabase = createClient()
-  const { currentOrganization } = useOrganizationStore()
+  const currentOrganization = useOrganizationStore((s) => s.currentOrganization)
   const [milestones, setMilestones] = useState<any[]>([])
   const [tasks, setTasks] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)

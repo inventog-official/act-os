@@ -98,6 +98,8 @@ export function TaskDetailDialog({ task, open, onOpenChange, onUpdate }: TaskDet
 
   const checkProgress = checklist.length > 0 ? Math.round((checklist.filter(c => c.completed).length / checklist.length) * 100) : 0
 
+  if (!task) return null
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px] max-h-[80vh]">

@@ -15,7 +15,7 @@ interface SearchResult {
   description: string
   href: string
   icon: any
-  type: 'lead' | 'company' | 'contact' | 'deal'
+  type: 'lead' | 'company' | 'contact' | 'deal' | 'project' | 'task'
 }
 
 const commands = [
@@ -29,16 +29,16 @@ const commands = [
   { id: '8', title: 'New Project', href: '/projects/new', icon: File, category: 'Actions' },
 ]
 
-const typeIcons: Record<string, any> = { lead: UserPlus, company: Building2, contact: Users, deal: Target }
+const typeIcons: Record<string, any> = { lead: UserPlus, company: Building2, contact: Users, deal: Target, project: FolderKanban, task: CheckSquare }
 
 export function CommandPalette({ orgSlug }: { orgSlug: string }) {
   const router = useRouter()
   const supabase = createClient()
   const { commandPaletteOpen, setCommandPaletteOpen } = useUIStore()
-  const { currentOrganization } = useOrganizationStore()
+  const currentOrganization = useOrganizationStore((s) => s.currentOrganization)
   const [query, setQuery] = useState('')
   const [selectedIndex, setSelectedIndex] = useState(0)
-  const [crmResults, setCrmResults] = useState<SearchResult[]>([])
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([])
   const [isSearching, setIsSearching] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const isMobile = useMediaQuery('(max-width: 768px)')
@@ -47,19 +47,21 @@ export function CommandPalette({ orgSlug }: { orgSlug: string }) {
     ? commands.filter(c => c.title.toLowerCase().includes(query.toLowerCase()))
     : commands
 
-  const doCrmSearch = useCallback(async (q: string) => {
-    if (!currentOrganization || q.length < 2) { setCrmResults([]); return }
+  const doSearch = useCallback(async (q: string) => {
+    if (!currentOrganization || q.length < 2) { setSearchResults([]); return }
     setIsSearching(true)
     setSelectedIndex(0)
     try {
       const term = `%${q}%`
       const orgId = currentOrganization.id
 
-      const [leadsRes, companiesRes, contactsRes, dealsRes] = await Promise.all([
+      const [leadsRes, companiesRes, contactsRes, dealsRes, projectsRes, tasksRes] = await Promise.all([
         supabase.from('crm_leads').select('id, first_name, last_name, company_name').eq('organization_id', orgId).is('deleted_at', null).or(`first_name.ilike.${term},last_name.ilike.${term}`).limit(3),
         supabase.from('crm_companies').select('id, name').eq('organization_id', orgId).is('deleted_at', null).or(`name.ilike.${term}`).limit(3),
         supabase.from('crm_contacts').select('id, first_name, last_name').eq('organization_id', orgId).is('deleted_at', null).or(`first_name.ilike.${term},last_name.ilike.${term}`).limit(3),
         supabase.from('crm_deals').select('id, name').eq('organization_id', orgId).is('deleted_at', null).or(`name.ilike.${term}`).limit(3),
+        supabase.from('projects').select('id, name, description').eq('organization_id', orgId).is('deleted_at', null).or(`name.ilike.${term},code.ilike.${term},description.ilike.${term}`).limit(3),
+        supabase.from('tasks').select('id, title, description, project_id').eq('organization_id', orgId).is('deleted_at', null).or(`title.ilike.${term},description.ilike.${term}`).limit(3),
       ])
 
       const results: SearchResult[] = []
@@ -67,9 +69,11 @@ export function CommandPalette({ orgSlug }: { orgSlug: string }) {
       ;(companiesRes.data || []).forEach(c => results.push({ id: c.id, label: c.name, description: 'Company', href: `/${currentOrganization.slug}/crm/companies`, icon: typeIcons.company, type: 'company' }))
       ;(contactsRes.data || []).forEach(c => results.push({ id: c.id, label: `${c.first_name} ${c.last_name}`, description: 'Contact', href: `/${currentOrganization.slug}/crm/contacts`, icon: typeIcons.contact, type: 'contact' }))
       ;(dealsRes.data || []).forEach(d => results.push({ id: d.id, label: d.name, description: 'Deal', href: `/${currentOrganization.slug}/crm/pipeline`, icon: typeIcons.deal, type: 'deal' }))
+      ;(projectsRes.data || []).forEach(p => results.push({ id: p.id, label: p.name, description: p.description || 'Project', href: `/${currentOrganization.slug}/projects/${p.id}`, icon: typeIcons.project, type: 'project' }))
+      ;(tasksRes.data || []).forEach(t => results.push({ id: t.id, label: t.title, description: t.description || 'Task', href: `/${currentOrganization.slug}/projects/${t.project_id}/tasks/${t.id}`, icon: typeIcons.task, type: 'task' }))
 
-      setCrmResults(results)
-    } catch { setCrmResults([]) }
+      setSearchResults(results)
+    } catch { setSearchResults([]) }
     finally { setIsSearching(false) }
   }, [currentOrganization, supabase])
 
@@ -83,13 +87,13 @@ export function CommandPalette({ orgSlug }: { orgSlug: string }) {
   }, [commandPaletteOpen, setCommandPaletteOpen])
 
   useEffect(() => {
-    if (commandPaletteOpen) { setQuery(''); setSelectedIndex(0); setCrmResults([]); setTimeout(() => inputRef.current?.focus(), 50) }
+    if (commandPaletteOpen) { setQuery(''); setSelectedIndex(0); setSearchResults([]); setTimeout(() => inputRef.current?.focus(), 50) }
   }, [commandPaletteOpen])
 
   useEffect(() => {
-    const timer = setTimeout(() => doCrmSearch(query), 200)
+    const timer = setTimeout(() => doSearch(query), 200)
     return () => clearTimeout(timer)
-  }, [query, doCrmSearch])
+  }, [query, doSearch])
 
   const executeCommand = useCallback((href: string) => {
     setCommandPaletteOpen(false)
@@ -103,7 +107,7 @@ export function CommandPalette({ orgSlug }: { orgSlug: string }) {
 
   const allItems: { href: string; label: string; icon?: any; category?: string; isCrm?: boolean }[] = [
     ...filteredCommands.map(c => ({ href: c.href, label: c.title, icon: c.icon, category: c.category })),
-    ...crmResults.map(r => ({ href: r.href, label: r.label, icon: r.icon, category: r.type, isCrm: true })),
+    ...searchResults.map(r => ({ href: r.href, label: r.label, icon: r.icon, category: r.type, isCrm: true })),
   ]
 
   const handleKeyDown = (e: React.KeyboardEvent) => {

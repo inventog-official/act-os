@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { Search, Loader2, Users, Building2, UserPlus, Target, FileText, Activity } from 'lucide-react'
+import { Search, Loader2, Users, Building2, UserPlus, Target, FileText, Activity, BookOpen } from 'lucide-react'
 import { useUIStore } from '@/lib/store'
 import { useOrganizationStore } from '@/lib/store'
 import { createClient } from '@/lib/supabase/client'
@@ -15,7 +15,7 @@ interface SearchResult {
   description: string
   href: string
   icon: any
-  type: 'lead' | 'company' | 'contact' | 'deal'
+  type: 'lead' | 'company' | 'contact' | 'deal' | 'document' | 'knowledge'
 }
 
 const typeIcons: Record<string, any> = {
@@ -23,13 +23,15 @@ const typeIcons: Record<string, any> = {
   company: Building2,
   contact: Users,
   deal: Target,
+  document: FileText,
+  knowledge: BookOpen,
 }
 
 export function QuickSearch() {
   const router = useRouter()
   const supabase = createClient()
   const { commandPaletteOpen, setCommandPaletteOpen } = useUIStore()
-  const { currentOrganization } = useOrganizationStore()
+  const currentOrganization = useOrganizationStore((s) => s.currentOrganization)
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<SearchResult[]>([])
   const [isSearching, setIsSearching] = useState(false)
@@ -55,11 +57,13 @@ export function QuickSearch() {
       const orgId = currentOrganization.id
       const term = `%${q}%`
 
-      const [leadsRes, companiesRes, contactsRes, dealsRes] = await Promise.all([
+      const [leadsRes, companiesRes, contactsRes, dealsRes, docsRes, articlesRes] = await Promise.all([
         supabase.from('crm_leads').select('id, first_name, last_name, company_name, email').eq('organization_id', orgId).is('deleted_at', null).or(`first_name.ilike.${term},last_name.ilike.${term},email.ilike.${term}`).limit(5),
         supabase.from('crm_companies').select('id, name, industry').eq('organization_id', orgId).is('deleted_at', null).or(`name.ilike.${term},industry.ilike.${term}`).limit(5),
         supabase.from('crm_contacts').select('id, first_name, last_name, email').eq('organization_id', orgId).is('deleted_at', null).or(`first_name.ilike.${term},last_name.ilike.${term},email.ilike.${term}`).limit(5),
         supabase.from('crm_deals').select('id, name, deal_value').eq('organization_id', orgId).is('deleted_at', null).or(`name.ilike.${term}`).limit(5),
+        supabase.from('documents').select('id, title, document_type, status').eq('organization_id', orgId).is('deleted_at', null).or(`title.ilike.${term},content_text.ilike.${term},tags.ilike.${term}`).limit(5),
+        supabase.from('knowledge_articles').select('id, title, category').eq('organization_id', orgId).is('deleted_at', null).or(`title.ilike.${term},summary.ilike.${term},content_text.ilike.${term}`).limit(5),
       ])
 
       const allResults: SearchResult[] = []
@@ -75,6 +79,12 @@ export function QuickSearch() {
       }))
       ;(dealsRes.data || []).forEach(d => allResults.push({
         id: d.id, label: d.name, description: `$${Number(d.deal_value).toLocaleString()}`, href: `/${currentOrganization.slug}/crm/pipeline`, icon: typeIcons.deal, type: 'deal',
+      }))
+      ;(docsRes.data || []).forEach((d: any) => allResults.push({
+        id: d.id, label: d.title, description: `${d.document_type}${d.status ? ' · ' + d.status : ''}`, href: `/${currentOrganization.slug}/documents/library`, icon: typeIcons.document, type: 'document',
+      }))
+      ;(articlesRes.data || []).forEach(a => allResults.push({
+        id: a.id, label: a.title, description: a.category || 'Knowledge article', href: `/${currentOrganization.slug}/documents/knowledge`, icon: typeIcons.knowledge, type: 'knowledge',
       }))
 
       setResults(allResults)
@@ -111,7 +121,7 @@ export function QuickSearch() {
             value={query}
             onChange={e => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Search leads, companies, contacts, deals..."
+             placeholder="Search leads, companies, contacts, deals, documents..."
             className="flex-1 bg-transparent text-sm outline-none placeholder:text-zinc-400"
           />
           {isSearching && <Loader2 className="h-4 w-4 animate-spin text-zinc-400" />}
@@ -153,6 +163,7 @@ export function QuickSearch() {
                 { label: 'Leads', href: '/crm/leads', icon: UserPlus },
                 { label: 'Companies', href: '/crm/companies', icon: Building2 },
                 { label: 'Contacts', href: '/crm/contacts', icon: Users },
+                { label: 'Documents', href: '/documents/dashboard', icon: FileText },
               ].map(item => {
                 const Icon = item.icon
                 return (

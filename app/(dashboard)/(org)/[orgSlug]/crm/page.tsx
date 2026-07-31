@@ -1,15 +1,19 @@
+'use client'
+
+import { useState, use, useEffect } from 'react'
 import { TrendingUp, TrendingDown, DollarSign, Users, Target, Activity, ArrowRight, Building2 } from 'lucide-react'
 import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Skeleton } from '@/components/ui/skeleton'
 import { DashboardShell } from '@/components/layout/dashboard-shell'
 import { CrmShell } from '@/components/crm/crm-shell'
 import { ActivityFeed } from '@/components/crm/activity-feed'
 import { formatCurrency, formatRelativeTime, getInitials } from '@/lib/utils'
-import { getOrganizationBySlug } from '@/lib/queries/org'
-import { getLeads, getDeals, getActivities, getPipelineStages, getDefaultPipeline } from '@/lib/actions/crm'
+import { useOrganizationStore } from '@/lib/store'
+import { createClient } from '@/lib/supabase/client'
 
 const statusColors: Record<string, string> = {
   new: 'bg-blue-500',
@@ -21,17 +25,60 @@ const statusColors: Record<string, string> = {
   lost: 'bg-red-500',
 }
 
-export default async function CrmDashboardPage({ params }: { params: Promise<{ orgSlug: string }> }) {
-  const { orgSlug } = await params
-  const org = await getOrganizationBySlug(orgSlug)
-  if (!org) return <div>Organization not found</div>
+function LoadingSkeleton() {
+  return (
+    <div className="space-y-6">
+      <div>
+        <Skeleton className="h-8 w-56 mb-2" />
+        <Skeleton className="h-4 w-72" />
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Card key={i}>
+            <CardContent className="p-5">
+              <Skeleton className="h-5 w-5 mb-3" />
+              <Skeleton className="h-8 w-24 mb-1" />
+              <Skeleton className="h-4 w-20" />
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+      <div className="grid gap-6 lg:grid-cols-3">
+        <Card className="lg:col-span-2"><CardContent className="p-5"><Skeleton className="h-[300px] w-full" /></CardContent></Card>
+        <Card><CardContent className="p-5"><Skeleton className="h-[300px] w-full" /></CardContent></Card>
+      </div>
+    </div>
+  )
+}
 
-  const orgId = org.id
-  const [leads, deals, activities] = await Promise.all([
-    getLeads(orgId, null).catch(() => []),
-    getDeals(orgId, null).catch(() => []),
-    getActivities(orgId, null, 5).catch(() => []),
-  ])
+export default function CrmDashboardPage({ params }: { params: Promise<{ orgSlug: string }> }) {
+  const { orgSlug } = use(params)
+  const supabase = createClient()
+  const currentOrganization = useOrganizationStore((s) => s.currentOrganization)
+
+  const [leads, setLeads] = useState<any[]>([])
+  const [deals, setDeals] = useState<any[]>([])
+  const [activities, setActivities] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    if (!currentOrganization?.id) return
+    const orgId = currentOrganization.id
+
+    setLoading(true)
+    Promise.all([
+      supabase.from('crm_leads').select('*').eq('organization_id', orgId).is('deleted_at', null).order('created_at', { ascending: false }),
+      supabase.from('crm_deals').select('*').eq('organization_id', orgId).is('deleted_at', null).order('created_at', { ascending: false }),
+      supabase.from('crm_activities').select('*').eq('organization_id', orgId).order('activity_date', { ascending: false }).limit(5),
+    ])
+      .then(([leadsRes, dealsRes, activitiesRes]) => {
+        setLeads(leadsRes.data ?? [])
+        setDeals(dealsRes.data ?? [])
+        setActivities(activitiesRes.data ?? [])
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [currentOrganization?.id, supabase])
 
   const totalLeads = leads.length
   const activeClients = deals.filter(d => d.pipeline_stage_id).length
@@ -69,6 +116,16 @@ export default async function CrmDashboardPage({ params }: { params: Promise<{ o
       priority: 'medium' as const,
     })),
   ]
+
+  if (loading) {
+    return (
+      <DashboardShell orgSlug={orgSlug}>
+        <CrmShell orgSlug={orgSlug}>
+          <LoadingSkeleton />
+        </CrmShell>
+      </DashboardShell>
+    )
+  }
 
   return (
     <DashboardShell orgSlug={orgSlug}>

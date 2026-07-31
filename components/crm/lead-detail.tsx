@@ -10,14 +10,15 @@ import { ActivityFeed } from '@/components/crm/activity-feed'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { formatDate, formatCurrency, getInitials, formatRelativeTime } from '@/lib/utils'
-import { Phone, Mail, Globe, Building2, Target, Calendar, Plus, Pin, Lock, Sparkles, FolderKanban } from 'lucide-react'
+import { Phone, Mail, Globe, Building2, Target, Calendar, Plus, Pin, Lock, Sparkles, FolderKanban, Tags } from 'lucide-react'
 import { NoteEditor } from '@/components/crm/note-editor'
 import { AiLeadInsights } from '@/components/crm/ai-insights'
 import { CreateProjectDialog } from '@/components/projects/create-project-dialog'
+import { TagBadge, TagSelector } from '@/components/crm/tag-selector'
 import { useAuthStore } from '@/lib/store'
 import { isSupabaseConfigured } from '@/lib/auth/mock-auth'
 import { addMockData } from '@/lib/auth/mock-data'
-import type { CrmLead, CrmTimeline, CrmActivity, CrmNote } from '@/lib/types/database'
+import type { CrmLead, CrmTimeline, CrmActivity, CrmNote, CrmTag } from '@/lib/types/database'
 
 export function LeadDetailDialog({
   lead,
@@ -29,12 +30,14 @@ export function LeadDetailDialog({
   onOpenChange: (open: boolean) => void
 }) {
   const supabase = createClient()
-  const { user } = useAuthStore()
+  const user = useAuthStore((s) => s.user)
   const [timeline, setTimeline] = useState<CrmTimeline[]>([])
   const [activities, setActivities] = useState<CrmActivity[]>([])
   const [notes, setNotes] = useState<CrmNote[]>([])
   const [showEditor, setShowEditor] = useState(false)
   const [showCreateProject, setShowCreateProject] = useState(false)
+  const [leadTags, setLeadTags] = useState<CrmTag[]>([])
+  const [allTags, setAllTags] = useState<CrmTag[]>([])
 
   async function fetchData(lead: CrmLead) {
     const orgId = lead.organization_id
@@ -47,11 +50,16 @@ export function LeadDetailDialog({
       return
     }
 
-    const [tRes, aRes, nRes] = await Promise.all([
+    const [tRes, aRes, nRes, tagRes, entityTagRes] = await Promise.all([
       supabase.from('crm_timeline').select('*').eq('organization_id', orgId).eq('lead_id', lead.id).order('created_at', { ascending: false }).limit(20),
       supabase.from('crm_activities').select('*').eq('organization_id', orgId).eq('lead_id', lead.id).order('activity_date', { ascending: false }).limit(20),
       supabase.from('crm_notes').select('*').eq('organization_id', orgId).eq('lead_id', lead.id).is('deleted_at', null).order('created_at', { ascending: false }),
+      supabase.from('crm_tags').select('*').eq('organization_id', orgId).is('deleted_at', null).order('name'),
+      supabase.from('crm_entity_tags').select('tag_id').eq('entity_type', 'lead').eq('entity_id', lead.id),
     ])
+    setAllTags((tagRes.data || []) as CrmTag[])
+    const taggedIds = new Set((entityTagRes.data || []).map((e: any) => e.tag_id))
+    setLeadTags((tagRes.data || []).filter((t: any) => taggedIds.has(t.id)) as CrmTag[])
     setTimeline((tRes.data || []) as CrmTimeline[])
     setActivities((aRes.data || []) as CrmActivity[])
     setNotes((nRes.data || []) as CrmNote[])
@@ -95,6 +103,32 @@ export function LeadDetailDialog({
     }
   }
 
+  const handleTagToggle = async (tag: CrmTag) => {
+    const isTagged = leadTags.some(t => t.id === tag.id)
+    if (isTagged) {
+      await supabase.from('crm_entity_tags').delete().eq('tag_id', tag.id).eq('entity_type', 'lead').eq('entity_id', lead!.id)
+      setLeadTags(prev => prev.filter(t => t.id !== tag.id))
+    } else {
+      await supabase.from('crm_entity_tags').insert({ tag_id: tag.id, entity_type: 'lead', entity_id: lead!.id })
+      setLeadTags(prev => [...prev, tag])
+    }
+  }
+
+  const handleCreateTag = async (name: string, color: string) => {
+    if (!lead) return
+    const { data, error } = await supabase.from('crm_tags').insert({
+      name, color,
+      organization_id: lead.organization_id,
+      workspace_id: null,
+      created_by: user?.id || '',
+    }).select().single()
+    if (!error && data) {
+      const newTag = data as CrmTag
+      setAllTags(prev => [...prev, newTag])
+      setLeadTags(prev => [...prev, newTag])
+    }
+  }
+
   if (!lead) return null
 
   const statusColors: Record<string, string> = {
@@ -115,9 +149,11 @@ export function LeadDetailDialog({
               <p className="text-sm font-normal text-zinc-500">{lead.job_title || 'No title'}</p>
             </div>
             <div className={`ml-auto h-2.5 w-2.5 rounded-full ${statusColors[lead.status] || 'bg-zinc-400'}`} title={lead.status} />
-            <Button variant="outline" size="sm" className="ml-2" onClick={(e: React.MouseEvent) => { e.preventDefault(); setShowCreateProject(true) }}>
-              <FolderKanban className="h-3.5 w-3.5 mr-1" /> Project
-            </Button>
+            {lead.status === 'won' && (
+              <Button variant="outline" size="sm" className="ml-2" onClick={(e: React.MouseEvent) => { e.preventDefault(); setShowCreateProject(true) }}>
+                <FolderKanban className="h-3.5 w-3.5 mr-1" /> Create Project
+              </Button>
+            )}
           </DialogTitle>
         </DialogHeader>
 
@@ -153,6 +189,29 @@ export function LeadDetailDialog({
             </div>
           )}
         </div>
+
+        {leadTags.length > 0 && (
+          <div className="flex flex-wrap items-center gap-1.5">
+            <Tags className="h-3.5 w-3.5 text-zinc-400" />
+            {leadTags.map(tag => (
+              <TagBadge key={tag.id} tag={tag} onRemove={() => handleTagToggle(tag)} />
+            ))}
+          </div>
+        )}
+
+        <details className="text-sm">
+          <summary className="cursor-pointer text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300">
+            <Plus className="inline h-3.5 w-3.5 mr-1" />Add tags
+          </summary>
+          <div className="mt-2">
+            <TagSelector
+              tags={allTags}
+              selectedTags={leadTags}
+              onToggle={handleTagToggle}
+              onCreateTag={handleCreateTag}
+            />
+          </div>
+        </details>
 
         <AiLeadInsights lead={lead} />
 

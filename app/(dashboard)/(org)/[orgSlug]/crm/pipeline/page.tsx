@@ -17,7 +17,7 @@ import type { CrmDeal, CrmPipeline, CrmPipelineStage } from '@/lib/types/databas
 export default function PipelinePage({ params }: { params: Promise<{ orgSlug: string }> }) {
   const { orgSlug } = use(params)
   const supabase = createClient()
-  const { currentOrganization } = useOrganizationStore()
+  const currentOrganization = useOrganizationStore((s) => s.currentOrganization)
 
   const [pipeline, setPipeline] = useState<CrmPipeline | null>(null)
   const [stages, setStages] = useState<CrmPipelineStage[]>([])

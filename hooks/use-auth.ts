@@ -9,13 +9,16 @@ import { getMockUser, clearMockUser, isSupabaseConfigured } from '@/lib/auth/moc
 export function useAuth() {
   const router = useRouter()
   const supabase = createClient()
-  const { user, isLoading, setUser, setLoading, reset } = useAuthStore()
+  const user = useAuthStore((s) => s.user)
+  const isLoading = useAuthStore((s) => s.isLoading)
 
   useEffect(() => {
+    const store = useAuthStore.getState()
+
     if (!isSupabaseConfigured()) {
       const mockUser = getMockUser()
       if (mockUser) {
-        setUser({
+        store.setUser({
           id: mockUser.id,
           email: mockUser.email,
           app_metadata: {},
@@ -24,30 +27,30 @@ export function useAuth() {
           created_at: new Date().toISOString(),
         } as any)
       }
-      setLoading(false)
+      store.setLoading(false)
       return
     }
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null)
+      useAuthStore.getState().setUser(session?.user ?? null)
     })
 
     supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user) setUser(user)
+      if (user) useAuthStore.getState().setUser(user)
     })
 
     return () => subscription.unsubscribe()
-  }, [supabase, setUser, setLoading])
+  }, [supabase])
 
   const signOut = useCallback(async () => {
     clearMockUser()
     if (isSupabaseConfigured()) {
       await supabase.auth.signOut()
     }
-    reset()
+    useAuthStore.getState().reset()
     router.push('/login')
     router.refresh()
-  }, [supabase, reset, router])
+  }, [supabase, router])
 
   return {
     user,

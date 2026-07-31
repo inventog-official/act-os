@@ -2,11 +2,13 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { IoLogoStencil } from 'react-icons/io5'
 import {
   LayoutDashboard,
   FolderKanban,
   CheckSquare,
   Users,
+  Box,
   Calendar,
   Activity,
   BarChart3,
@@ -15,6 +17,9 @@ import {
   ChevronRight,
   Settings,
   Plus,
+  Wallet,
+  UserRound,
+  FileText,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useUIStore } from '@/lib/store'
@@ -28,6 +33,10 @@ const navItems = [
   { title: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { title: 'CRM', href: '/crm', icon: ContactRound },
   { title: 'Projects', href: '/projects', icon: FolderKanban },
+  { title: 'Finance', href: '/finance', icon: Wallet },
+  { title: 'HR', href: '/hr', icon: UserRound },
+  { title: 'Documents', href: '/documents', icon: FileText },
+  { title: 'Inventory', href: '/inventory', icon: Box },
   { title: 'Tasks', href: '/tasks', icon: CheckSquare },
   { title: 'Teams', href: '/teams', icon: Users },
   { title: 'Calendar', href: '/calendar', icon: Calendar },
@@ -38,7 +47,7 @@ const navItems = [
 export function Sidebar({ orgSlug }: { orgSlug: string }) {
   const pathname = usePathname()
   const { sidebarOpen, toggleSidebar } = useUIStore()
-  const { currentOrganization } = useOrganizationStore()
+  const currentOrganization = useOrganizationStore((s) => s.currentOrganization)
 
   const isActive = (href: string) => pathname.includes(href)
 
@@ -57,8 +66,8 @@ export function Sidebar({ orgSlug }: { orgSlug: string }) {
           {sidebarOpen ? (
             <>
               <Link href={`/${orgSlug}/dashboard`} className="flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-900 text-sm font-bold text-white dark:bg-zinc-50 dark:text-zinc-900">
-                  A
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-900 text-white dark:bg-zinc-50 dark:text-zinc-900">
+                  <IoLogoStencil className="h-5 w-5" />
                 </div>
                 <div className="flex flex-col">
                   <span className="text-sm font-semibold">ACT OS</span>
@@ -76,8 +85,8 @@ export function Sidebar({ orgSlug }: { orgSlug: string }) {
           ) : (
             <>
               <Link href={`/${orgSlug}/dashboard`}>
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-900 text-sm font-bold text-white dark:bg-zinc-50 dark:text-zinc-900">
-                  A
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-900 text-white dark:bg-zinc-50 dark:text-zinc-900">
+                  <IoLogoStencil className="h-5 w-5" />
                 </div>
               </Link>
               <Button variant="ghost" size="icon-sm" onClick={toggleSidebar} className="absolute -right-3 top-5">

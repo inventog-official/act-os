@@ -37,7 +37,7 @@ const roleColors: Record<string, string> = {
 
 export default function MembersPage() {
   const supabase = createClient()
-  const { currentOrganization } = useOrganizationStore()
+  const currentOrganization = useOrganizationStore((s) => s.currentOrganization)
   const [members, setMembers] = useState<Member[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [inviteEmail, setInviteEmail] = useState('')

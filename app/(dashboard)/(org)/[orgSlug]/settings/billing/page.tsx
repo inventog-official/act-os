@@ -26,7 +26,7 @@ const invoices = [
 
 export default function BillingPage() {
   const supabase = createClient()
-  const { currentOrganization } = useOrganizationStore()
+  const currentOrganization = useOrganizationStore((s) => s.currentOrganization)
   const [currentPlan, setCurrentPlan] = useState('starter')
   const [isLoading, setIsLoading] = useState(true)
   const [isUpgrading, setIsUpgrading] = useState<string | null>(null)

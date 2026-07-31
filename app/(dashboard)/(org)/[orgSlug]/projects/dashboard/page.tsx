@@ -18,7 +18,7 @@ export default function ProjectsDashboardPage({ params }: { params: Promise<{ or
   const { orgSlug } = use(params)
   const router = useRouter()
   const supabase = createClient()
-  const { currentOrganization } = useOrganizationStore()
+  const currentOrganization = useOrganizationStore((s) => s.currentOrganization)
   const [projects, setProjects] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [showCreate, setShowCreate] = useState(false)
@@ -35,12 +35,12 @@ export default function ProjectsDashboardPage({ params }: { params: Promise<{ or
     fetch()
   }, [currentOrganization, supabase])
 
+  const now = Date.now()
   const active = projects.filter(p => p.status === 'active')
   const completed = projects.filter(p => p.status === 'completed')
   const delayed = projects.filter(p => p.status === 'active' && p.end_date && new Date(p.end_date).getTime() < now)
   const planning = projects.filter(p => p.status === 'planning')
 
-  const now = Date.now()
   const upcomingDeadlines = projects
     .filter(p => p.status === 'active' && p.end_date)
     .sort((a, b) => new Date(a.end_date).getTime() - new Date(b.end_date).getTime())

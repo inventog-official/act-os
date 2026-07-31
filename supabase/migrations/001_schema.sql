@@ -285,7 +285,7 @@ CREATE POLICY "Owners and admins can update organizations"
     OR auth.uid() IN (
       SELECT om.user_id FROM organization_members om
       JOIN roles r ON om.role_id = r.id
-      WHERE om.organization_id = id AND r.slug IN ('super_admin', 'admin')
+      WHERE om.organization_id = organizations.id AND r.slug IN ('super_admin', 'admin')
     )
   );
 

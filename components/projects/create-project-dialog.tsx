@@ -27,7 +27,7 @@ interface CreateProjectDialogProps {
 export function CreateProjectDialog({ open, onOpenChange, onSuccess, defaults }: CreateProjectDialogProps) {
   const router = useRouter()
   const supabase = createClient()
-  const { currentOrganization } = useOrganizationStore()
+  const currentOrganization = useOrganizationStore((s) => s.currentOrganization)
   const [saving, setSaving] = useState(false)
   const [formData, setFormData] = useState({
     name: defaults?.name || '',

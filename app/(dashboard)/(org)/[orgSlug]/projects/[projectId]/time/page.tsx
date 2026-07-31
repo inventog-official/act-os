@@ -2,7 +2,7 @@
 
 import { useState, use, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Plus, Play, Square, Clock, Loader2, Timer, DollarSign } from 'lucide-react'
+import { ArrowLeft, Plus, Play, Square, Clock, Loader2, Timer, DollarSign, FileText } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -11,20 +11,24 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import { DashboardShell } from '@/components/layout/dashboard-shell'
 import { createClient } from '@/lib/supabase/client'
 import { useOrganizationStore } from '@/lib/store'
-import { formatDate, formatRelativeTime } from '@/lib/utils'
+import { formatDate, formatRelativeTime, formatCurrency } from '@/lib/utils'
+import { createInvoiceFromTimeEntries } from '@/lib/actions/finance'
 import { toast } from 'sonner'
 
 export default function TimeTrackingPage({ params }: { params: Promise<{ orgSlug: string; projectId: string }> }) {
   const { orgSlug, projectId } = use(params)
   const router = useRouter()
   const supabase = createClient()
-  const { currentOrganization } = useOrganizationStore()
+  const currentOrganization = useOrganizationStore((s) => s.currentOrganization)
   const [entries, setEntries] = useState<any[]>([])
   const [tasks, setTasks] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [runningEntry, setRunningEntry] = useState<any>(null)
   const [showManual, setShowManual] = useState(false)
   const [formData, setFormData] = useState({ task_id: '', description: '', duration_minutes: 30 })
+  const [showInvoice, setShowInvoice] = useState(false)
+  const [invoiceForm, setInvoiceForm] = useState({ client_name: '', client_email: '', description: '' })
+  const [invoicing, setInvoicing] = useState(false)
 
   const fetch = useCallback(async () => {
     setIsLoading(true)
@@ -66,6 +70,9 @@ export default function TimeTrackingPage({ params }: { params: Promise<{ orgSlug
   }
 
   const totalHours = entries.reduce((sum, e) => sum + (e.duration_minutes || 0), 0) / 60
+  const billableEntries = entries.filter(e => e.billable && e.duration_minutes)
+  const billableHours = billableEntries.reduce((sum, e) => sum + (e.duration_minutes || 0), 0) / 60
+  const billableAmount = billableEntries.reduce((sum, e) => sum + ((Number(e.billable_rate) || 0) * (e.duration_minutes || 0) / 60), 0)
 
   return (
     <DashboardShell orgSlug={orgSlug}>
@@ -90,10 +97,13 @@ export default function TimeTrackingPage({ params }: { params: Promise<{ orgSlug
             <Button variant="outline" size="sm" onClick={() => setShowManual(true)}>
               <Plus className="h-4 w-4 mr-1" /> Manual Entry
             </Button>
+            <Button variant="outline" size="sm" onClick={() => { setInvoiceForm({ client_name: '', client_email: '', description: '' }); setShowInvoice(true); }} disabled={billableEntries.length === 0}>
+              <FileText className="h-4 w-4 mr-1" /> Generate Invoice
+            </Button>
           </div>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-4">
           <Card>
             <CardContent className="p-4 flex items-center gap-3">
               <Timer className="h-5 w-5 text-blue-500" />
@@ -110,6 +120,12 @@ export default function TimeTrackingPage({ params }: { params: Promise<{ orgSlug
             <CardContent className="p-4 flex items-center gap-3">
               <Clock className="h-5 w-5 text-emerald-500" />
               <div><p className="text-xs text-zinc-500">Running</p><p className="text-xl font-bold">{runningEntry ? 'Yes' : 'No'}</p></div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 flex items-center gap-3">
+              <DollarSign className="h-5 w-5 text-purple-500" />
+              <div><p className="text-xs text-zinc-500">Billable ({billableHours.toFixed(1)}h)</p><p className="text-xl font-bold">{formatCurrency(billableAmount)}</p></div>
             </CardContent>
           </Card>
         </div>
@@ -171,6 +187,50 @@ export default function TimeTrackingPage({ params }: { params: Promise<{ orgSlug
               setFormData({ task_id: '', description: '', duration_minutes: 30 })
               fetch()
             }}>Log Time</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showInvoice} onOpenChange={setShowInvoice}>
+        <DialogContent className="sm:max-w-[450px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Generate Invoice from Time
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-4 text-sm dark:border-zinc-800 dark:bg-zinc-900/50">
+              <div className="flex justify-between"><span className="text-zinc-500">Billable entries</span><span className="font-medium">{billableEntries.length}</span></div>
+              <div className="flex justify-between"><span className="text-zinc-500">Billable hours</span><span className="font-medium">{billableHours.toFixed(2)}</span></div>
+              <div className="flex justify-between mt-1 pt-1 border-t border-zinc-200 dark:border-zinc-800"><span className="text-zinc-500">Invoice total</span><span className="font-semibold">{formatCurrency(billableAmount)}</span></div>
+            </div>
+            <Input label="Client Name" value={invoiceForm.client_name} onChange={e => setInvoiceForm(p => ({ ...p, client_name: e.target.value }))} placeholder="Defaults to project client" />
+            <Input label="Client Email" type="email" value={invoiceForm.client_email} onChange={e => setInvoiceForm(p => ({ ...p, client_email: e.target.value }))} />
+            <Input label="Description / Notes" value={invoiceForm.description} onChange={e => setInvoiceForm(p => ({ ...p, description: e.target.value }))} placeholder="Optional invoice notes" />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowInvoice(false)}>Cancel</Button>
+            <Button disabled={invoicing} onClick={async () => {
+              setInvoicing(true)
+              try {
+                const invoice = await createInvoiceFromTimeEntries(projectId, {
+                  clientName: invoiceForm.client_name || null,
+                  clientEmail: invoiceForm.client_email || null,
+                  description: invoiceForm.description || null,
+                })
+                toast.success(`Invoice ${invoice.invoice_number} created`)
+                setShowInvoice(false)
+                router.push(`/${orgSlug}/finance/invoices`)
+              } catch (err: any) {
+                toast.error(err.message || 'Failed to create invoice')
+              } finally {
+                setInvoicing(false)
+              }
+            }}>
+              {invoicing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Create Invoice
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -22,7 +22,9 @@ CREATE TABLE project_tags (
   project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
   color TEXT DEFAULT '#6b7280',
-  created_at TIMESTAMPTZ DEFAULT NOW()
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  deleted_at TIMESTAMPTZ
 );
 
 -- Project Files / Folders
@@ -282,12 +284,27 @@ ALTER TABLE sprint_tasks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE time_entries ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policies
+DROP POLICY IF EXISTS "Members can read project data" ON project_members;
+
+CREATE OR REPLACE FUNCTION public.is_project_member(target_project_id UUID)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM project_members
+    WHERE project_id = target_project_id AND user_id = auth.uid()
+  );
+$$;
+
+GRANT EXECUTE ON FUNCTION public.is_project_member(UUID) TO anon, authenticated;
+
 CREATE POLICY "Members can read project data"
   ON project_members FOR SELECT
   USING (
-    project_id IN (
-      SELECT pm.project_id FROM project_members pm WHERE pm.user_id = auth.uid()
-    )
+    public.is_project_member(project_id)
     OR EXISTS (
       SELECT 1 FROM organization_members om
       WHERE om.user_id = auth.uid()

@@ -36,7 +36,7 @@ const priorityConfig: Record<string, { color: string; bg: string }> = {
 export default function TasksPage({ params }: { params: Promise<{ orgSlug: string }> }) {
   const { orgSlug } = use(params)
   const supabase = createClient()
-  const { currentOrganization } = useOrganizationStore()
+  const currentOrganization = useOrganizationStore((s) => s.currentOrganization)
 
   const [tasks, setTasks] = useState<CrmTask[]>([])
   const [statusFilter, setStatusFilter] = useState('all')

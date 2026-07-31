@@ -55,7 +55,7 @@ export function OtpForm() {
       }
 
       toast.success('Welcome!')
-      router.push('/acme-corp/dashboard')
+      router.push('/demo-corp/dashboard')
       router.refresh()
     } finally {
       setIsLoading(false)

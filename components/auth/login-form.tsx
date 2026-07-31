@@ -43,7 +43,7 @@ export function LoginForm() {
       }
 
               toast.success('Welcome back!')
-              const redirect = searchParams.get('redirect') || '/acme-corp/dashboard'
+              const redirect = searchParams.get('redirect') || '/demo-corp/dashboard'
               router.push(redirect)
               router.refresh()
     } finally {
@@ -100,9 +100,9 @@ export function LoginForm() {
           <input type="checkbox" className="rounded border-zinc-300 dark:border-zinc-700" />
           Remember me
         </label>
-        <button type="button" className="text-sm text-zinc-900 underline-offset-4 hover:underline dark:text-zinc-100">
+        <Link href="/forgot-password" className="text-sm text-zinc-900 underline-offset-4 hover:underline dark:text-zinc-100">
           Forgot password?
-        </button>
+        </Link>
       </div>
 
       <Button type="submit" className="w-full" disabled={isLoading}>
@@ -151,10 +151,9 @@ export function LoginForm() {
           setIsLoading(true)
           try {
             if (isSupabaseConfigured()) {
-              await fetch('/api/auth/test-login', { method: 'POST' })
               const { error } = await supabase.auth.signInWithPassword({
-                email: 'admin@example.com',
-                password: 'adminpass',
+                email: 'demo@actos.app',
+                password: 'demo1234',
               })
               if (error) { toast.error(error.message); return }
             } else {
@@ -173,7 +172,7 @@ export function LoginForm() {
               } as any)
             }
             toast.success('Welcome back!')
-            const redirect = searchParams.get('redirect') || '/acme-corp/dashboard'
+            const redirect = searchParams.get('redirect') || '/demo-corp/dashboard'
             router.push(redirect)
             router.refresh()
           } catch (err) {
@@ -191,7 +190,7 @@ export function LoginForm() {
               created_at: new Date().toISOString(),
             } as any)
             toast.success('Welcome back! (Mock)')
-            const redirect = searchParams.get('redirect') || '/acme-corp/dashboard'
+            const redirect = searchParams.get('redirect') || '/demo-corp/dashboard'
             router.push(redirect)
             router.refresh()
           } finally {

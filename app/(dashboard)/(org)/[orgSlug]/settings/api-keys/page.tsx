@@ -27,7 +27,7 @@ interface ApiKey {
 export default function ApiKeysPage() {
   const supabase = createClient()
   const { user } = useAuth()
-  const { currentOrganization } = useOrganizationStore()
+  const currentOrganization = useOrganizationStore((s) => s.currentOrganization)
   const [keys, setKeys] = useState<ApiKey[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [showNewKey, setShowNewKey] = useState(false)

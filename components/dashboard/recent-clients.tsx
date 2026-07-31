@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { getInitials, randomColor } from '@/lib/utils'
 
 const clients = [
-  { id: '1', name: 'Acme Corp', project: 'Website Redesign', amount: '$12,000', status: 'active', initials: 'AC' },
+  { id: '1', name: 'Demo Corp', project: 'Website Redesign', amount: '$12,000', status: 'active', initials: 'DC' },
   { id: '2', name: 'TechStart Inc', project: 'Mobile App', amount: '$28,500', status: 'active', initials: 'TI' },
   { id: '3', name: 'Global Media', project: 'Brand Refresh', amount: '$8,200', status: 'pending', initials: 'GM' },
   { id: '4', name: 'DataFlow Systems', project: 'API Integration', amount: '$15,000', status: 'completed', initials: 'DS' },

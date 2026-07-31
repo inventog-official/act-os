@@ -77,7 +77,7 @@ export interface Database {
       }
       notifications: {
         Row: Notification
-        Insert: Omit<Notification, 'id' | 'created_at'>
+        Insert: Omit<Notification, 'id' | 'created_at' | 'deleted_at'>
         Update: Partial<Omit<Notification, 'id'>>
         Relationships: []
       }
@@ -330,6 +330,7 @@ export interface Notification {
   read: boolean
   link: string | null
   created_at: string
+  deleted_at: string | null
 }
 
 export interface ApiKey extends BaseEntity {
@@ -549,7 +550,7 @@ export interface ProjectMember {
   id: string
   project_id: string
   user_id: string
-  role: 'admin' | 'manager' | 'member' | 'viewer'
+  role: 'owner' | 'project_manager' | 'developer' | 'designer' | 'qa' | 'viewer'
   created_by: string
   created_at: string
   updated_at: string

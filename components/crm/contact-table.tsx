@@ -13,9 +13,10 @@ interface ContactTableProps {
   contacts: CrmContact[]
   onEdit?: (contact: CrmContact) => void
   onDelete?: (id: string) => void
+  onRowClick?: (contact: CrmContact) => void
 }
 
-export function ContactTable({ contacts, onEdit, onDelete }: ContactTableProps) {
+export function ContactTable({ contacts, onEdit, onDelete, onRowClick }: ContactTableProps) {
   const columns: ColumnDef<CrmContact>[] = [
     {
       accessorKey: 'first_name',
@@ -84,5 +85,5 @@ export function ContactTable({ contacts, onEdit, onDelete }: ContactTableProps) 
     },
   ]
 
-  return <DataTable columns={columns} data={contacts} searchKey="first_name" />
+  return <DataTable columns={columns} data={contacts} searchKey="first_name" onRowClick={onRowClick} />
 }
