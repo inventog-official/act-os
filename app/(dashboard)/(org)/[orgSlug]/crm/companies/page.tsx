@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, use, useEffect, useCallback } from 'react'
+import Link from 'next/link'
 import { Plus, Search, Loader2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useOrganizationStore } from '@/lib/store'
@@ -102,11 +103,12 @@ export default function CompaniesPage({ params }: { params: Promise<{ orgSlug: s
           {filtered.length > 0 ? (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {filtered.map(company => (
-                <CompanyCard
-                  key={company.id}
-                  company={company}
-                  onClick={() => {}}
-                />
+                <Link key={company.id} href={`/${orgSlug}/crm/companies/${company.id}`}>
+                  <CompanyCard
+                    company={company}
+                    onClick={() => {}}
+                  />
+                </Link>
               ))}
             </div>
           ) : (

@@ -1,6 +1,21 @@
+import { db } from '@/db'
+import { crmActivities } from '@/db/schema'
+import { eq } from 'drizzle-orm'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { getCurrentUser, createTimelineEntry } from './utils'
+import { requirePermission } from '@/lib/auth/permissions'
 import type { CrmActivity } from '@/lib/types/database'
+import type { Permission } from '@/lib/auth/permissions'
+
+async function getActivityOrgId(id: string): Promise<string> {
+  const supabase = await createServerSupabaseClient()
+  const { data } = await supabase
+    .from('crm_activities')
+    .select('organization_id')
+    .eq('id', id)
+    .single()
+  return data?.organization_id || ''
+}
 
 export async function getActivities(organizationId: string, workspaceId: string | null, limit = 50) {
   const supabase = await createServerSupabaseClient()
@@ -48,20 +63,24 @@ export async function createActivity(input: {
   workspace_id: string | null
   assigned_to?: string | null
 }) {
+  await requirePermission(input.organization_id, 'crm:activities:create')
   const user = await getCurrentUser()
-  const supabase = await createServerSupabaseClient()
 
-  const { data, error } = await supabase
-    .from('crm_activities')
-    .insert({
-      ...input,
-      activity_date: input.activity_date || new Date().toISOString(),
-      created_by: user.id,
-    })
-    .select()
-    .single()
-
-  if (error) throw error
+  const [data] = await db.insert(crmActivities).values({
+    type: input.type,
+    subject: input.subject,
+    description: input.description ?? null,
+    activityDate: input.activity_date ? new Date(input.activity_date) : new Date(),
+    durationMinutes: input.duration_minutes ?? null,
+    leadId: input.lead_id ?? null,
+    companyId: input.company_id ?? null,
+    contactId: input.contact_id ?? null,
+    dealId: input.deal_id ?? null,
+    organizationId: input.organization_id,
+    workspaceId: input.workspace_id,
+    assignedTo: input.assigned_to ?? null,
+    createdBy: user.id,
+  }).returning()
 
   await createTimelineEntry({
     action: `activity_${input.type}`,
@@ -76,11 +95,11 @@ export async function createActivity(input: {
     workspace_id: input.workspace_id,
   })
 
-  return data as CrmActivity
+  return data as unknown as CrmActivity
 }
 
 export async function deleteActivity(id: string) {
-  const supabase = await createServerSupabaseClient()
-  const { error } = await supabase.from('crm_activities').delete().eq('id', id)
-  if (error) throw error
+  const orgId = await getActivityOrgId(id)
+  if (orgId) await requirePermission(orgId, 'crm:activities:delete')
+  await db.delete(crmActivities).where(eq(crmActivities.id, id))
 }

@@ -1,17 +1,18 @@
 'use server'
 
 import { createServerSupabaseClient } from '@/lib/supabase/server'
-import { getCurrentUser } from './utils'
+import { db } from '@/db'
+import { taskChecklistItems } from '@/db/schema'
+import { eq } from 'drizzle-orm'
+import { getCurrentUser, createProjectActivity } from './utils'
 
 export async function getTaskChecklist(taskId: string) {
   const supabase = await createServerSupabaseClient()
-
   const { data } = await supabase
     .from('task_checklist_items')
     .select('*')
     .eq('task_id', taskId)
     .order('sort_order', { ascending: true })
-
   return (data || []) as any[]
 }
 
@@ -23,36 +24,37 @@ export async function addChecklistItem(input: {
   const user = await getCurrentUser()
   const supabase = await createServerSupabaseClient()
 
-  const { data, error } = await supabase.from('task_checklist_items').insert({
-    task_id: input.task_id,
+  const [item] = await db.insert(taskChecklistItems).values({
+    taskId: input.task_id,
     text: input.text,
-    sort_order: input.sort_order || 0,
-    created_by: user.id,
-  }).select().single()
+    sortOrder: input.sort_order || 0,
+    createdBy: user.id,
+  } as any).returning()
 
-  if (error) throw error
-  return data as any
+  const { data: task } = await supabase.from('tasks').select('project_id, title').eq('id', input.task_id).single()
+  if (task) {
+    await createProjectActivity({
+      project_id: (task as any).project_id,
+      action: 'checklist.added',
+      description: `Added checklist item to task "${(task as any).title}"`,
+    }).catch(() => {})
+  }
+
+  return item as any
 }
 
 export async function toggleChecklistItem(id: string, completed: boolean) {
   const user = await getCurrentUser()
-  const supabase = await createServerSupabaseClient()
-
-  const { data, error } = await supabase.from('task_checklist_items').update({
+  const [item] = await db.update(taskChecklistItems).set({
     completed,
-    completed_at: completed ? new Date().toISOString() : null,
-    completed_by: completed ? user.id : null,
-    updated_at: new Date().toISOString(),
-  }).eq('id', id).select().single()
-
-  if (error) throw error
-  return data as any
+    completedAt: completed ? new Date() : null,
+    completedBy: completed ? user.id : null,
+    updatedAt: new Date(),
+  } as any).where(eq(taskChecklistItems.id, id)).returning()
+  return item as any
 }
 
 export async function deleteChecklistItem(id: string) {
-  const supabase = await createServerSupabaseClient()
-
-  const { error } = await supabase.from('task_checklist_items').delete().eq('id', id)
-  if (error) throw error
+  await db.delete(taskChecklistItems).where(eq(taskChecklistItems.id, id))
   return { success: true }
 }

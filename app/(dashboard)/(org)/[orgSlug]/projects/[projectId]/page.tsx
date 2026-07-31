@@ -2,7 +2,10 @@
 
 import { useState, use, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Settings, MoreHorizontal, Loader2, Calendar, Clock, Users, Target, BarChart3, CheckSquare, Layers, ListTodo, Kanban, FileText, Milestone, Timer, FolderKanban } from 'lucide-react'
+import { ArrowLeft, Settings, MoreHorizontal, Loader2, Calendar, Clock, Users, Target, BarChart3, CheckSquare, Layers, ListTodo, Kanban, FileText, Milestone, Timer, FolderKanban, Sparkles, Plus, UserPlus, Shield, Trash2 } from 'lucide-react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -13,6 +16,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { createClient } from '@/lib/supabase/client'
 import { useOrganizationStore } from '@/lib/store'
 import { formatDate, getInitials, formatCurrency } from '@/lib/utils'
+import { ProjectAI } from '@/components/projects/project-ai'
 
 const statusConfig: Record<string, { label: string; color: string }> = {
   planning: { label: 'Planning', color: 'bg-blue-500' },
@@ -31,6 +35,11 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ orgSlu
   const [tasks, setTasks] = useState<any[]>([])
   const [activities, setActivities] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [members, setMembers] = useState<any[]>([])
+  const [orgMembers, setOrgMembers] = useState<any[]>([])
+  const [showAddMember, setShowAddMember] = useState(false)
+  const [newMemberId, setNewMemberId] = useState('')
+  const [newMemberRole, setNewMemberRole] = useState('developer')
 
   const fetchProject = useCallback(async () => {
     if (!currentOrganization) return
@@ -44,6 +53,18 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ orgSlu
 
       const { data: a } = await supabase.from('project_activities').select('*').eq('project_id', projectId).order('created_at', { ascending: false }).limit(20)
       setActivities(a || [])
+
+      const { data: m } = await supabase
+        .from('project_members')
+        .select('*, user:auth.users(id, email, user_metadata)')
+        .eq('project_id', projectId)
+      setMembers(m || [])
+
+      const { data: om } = await supabase
+        .from('organization_members')
+        .select('user_id, user:auth.users(id, email, user_metadata)')
+        .eq('organization_id', currentOrganization.id)
+      setOrgMembers(om || [])
     } catch (err) { console.error(err) }
     finally { setIsLoading(false) }
   }, [projectId, currentOrganization, supabase])
@@ -61,6 +82,43 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ orgSlu
       <div className="text-center py-16"><p className="text-zinc-500">Project not found</p></div>
     </DashboardShell>
   )
+
+  const handleAddMember = async () => {
+    if (!newMemberId) return
+    try {
+      const { error } = await supabase.from('project_members').insert({
+        project_id: projectId,
+        user_id: newMemberId,
+        role: newMemberRole,
+        created_by: (await supabase.auth.getUser()).data.user?.id,
+      })
+      if (error) throw error
+      toast.success('Member added')
+      setShowAddMember(false)
+      setNewMemberId('')
+      setNewMemberRole('developer')
+      const { data: m } = await supabase.from('project_members').select('*, user:auth.users(id, email, user_metadata)').eq('project_id', projectId)
+      setMembers(m || [])
+    } catch (err: any) { toast.error(err.message) }
+  }
+
+  const handleRemoveMember = async (userId: string) => {
+    try {
+      const { error } = await supabase.from('project_members').delete().eq('project_id', projectId).eq('user_id', userId)
+      if (error) throw error
+      toast.success('Member removed')
+      setMembers(prev => prev.filter(m => m.user_id !== userId))
+    } catch (err: any) { toast.error(err.message) }
+  }
+
+  const handleChangeRole = async (userId: string, role: string) => {
+    try {
+      const { error } = await supabase.from('project_members').update({ role }).eq('project_id', projectId).eq('user_id', userId)
+      if (error) throw error
+      toast.success('Role updated')
+      setMembers(prev => prev.map(m => m.user_id === userId ? { ...m, role } : m))
+    } catch (err: any) { toast.error(err.message) }
+  }
 
   const cfg = statusConfig[project.status] || statusConfig.planning
   const completedTasks = tasks.filter(t => t.status === 'done').length
@@ -128,8 +186,13 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ orgSlu
             <TabsTrigger value="tasks">Tasks</TabsTrigger>
             <TabsTrigger value="milestones">Milestones</TabsTrigger>
             <TabsTrigger value="sprints">Sprints</TabsTrigger>
+            <TabsTrigger value="members">Members</TabsTrigger>
             <TabsTrigger value="files">Files</TabsTrigger>
             <TabsTrigger value="activity">Activity</TabsTrigger>
+            <TabsTrigger value="ai" className="gap-1.5">
+              <Sparkles className="h-3.5 w-3.5 text-amber-500" />
+              AI
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6 mt-6">
@@ -212,6 +275,91 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ orgSlu
             </div>
           </TabsContent>
 
+          <TabsContent value="members" className="mt-6">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-zinc-500">{members.length} member{members.length !== 1 ? 's' : ''}</p>
+                <Button size="sm" variant="outline" onClick={() => setShowAddMember(true)}>
+                  <UserPlus className="h-4 w-4 mr-1" />Add Member
+                </Button>
+              </div>
+              {members.length === 0 ? (
+                <p className="text-sm text-zinc-400 py-8 text-center">No members yet</p>
+              ) : (
+                <div className="space-y-2">
+                  {members.map(member => (
+                    <div key={member.id} className="flex items-center gap-3 rounded-lg border border-zinc-200 p-3 dark:border-zinc-800">
+                      <Avatar className="h-9 w-9">
+                        <AvatarFallback className="text-xs">{member.user?.user_metadata?.name?.charAt(0) || member.user_id?.charAt(0) || '?'}</AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium">{member.user?.user_metadata?.name || member.user?.email || member.user_id}</p>
+                        <p className="text-xs text-zinc-500">{member.user?.email}</p>
+                      </div>
+                      <Select value={member.role} onValueChange={(v) => handleChangeRole(member.user_id, v)}>
+                        <SelectTrigger className="w-[140px] h-8 text-xs"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="owner">Owner</SelectItem>
+                          <SelectItem value="project_manager">Project Manager</SelectItem>
+                          <SelectItem value="developer">Developer</SelectItem>
+                          <SelectItem value="designer">Designer</SelectItem>
+                          <SelectItem value="qa">QA</SelectItem>
+                          <SelectItem value="viewer">Viewer</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Button variant="ghost" size="icon-sm" onClick={() => handleRemoveMember(member.user_id)}>
+                        <Trash2 className="h-4 w-4 text-red-500" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <Dialog open={showAddMember} onOpenChange={setShowAddMember}>
+              <DialogContent className="sm:max-w-[400px]">
+                <DialogHeader>
+                  <DialogTitle>Add Member</DialogTitle>
+                  <DialogDescription>Add a user to this project</DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">User</label>
+                    <Select value={newMemberId} onValueChange={setNewMemberId}>
+                      <SelectTrigger><SelectValue placeholder="Select user" /></SelectTrigger>
+                      <SelectContent>
+                        {orgMembers
+                          .filter(om => !members.find(m => m.user_id === om.user_id))
+                          .map(om => (
+                            <SelectItem key={om.user_id} value={om.user_id}>
+                              {om.user?.user_metadata?.name || om.user?.email || om.user_id}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Role</label>
+                    <Select value={newMemberRole} onValueChange={setNewMemberRole}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="project_manager">Project Manager</SelectItem>
+                        <SelectItem value="developer">Developer</SelectItem>
+                        <SelectItem value="designer">Designer</SelectItem>
+                        <SelectItem value="qa">QA</SelectItem>
+                        <SelectItem value="viewer">Viewer</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setShowAddMember(false)}>Cancel</Button>
+                    <Button onClick={handleAddMember}>Add</Button>
+                  </DialogFooter>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </TabsContent>
+
           <TabsContent value="files" className="mt-6">
             <div className="text-center py-12">
               <p className="text-zinc-500 mb-4">Upload and manage files on the dedicated page</p>
@@ -237,6 +385,10 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ orgSlu
                 ))
               )}
             </div>
+          </TabsContent>
+
+          <TabsContent value="ai" className="mt-6">
+            <ProjectAI project={project} tasks={tasks} />
           </TabsContent>
         </Tabs>
       </div>

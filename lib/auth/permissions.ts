@@ -1,3 +1,6 @@
+import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { isSupabaseConfigured } from './mock-auth'
+
 export type Role = 'admin' | 'manager' | 'sales_executive' | 'employee' | 'guest'
 
 export type Permission = 
@@ -21,6 +24,7 @@ export type Permission =
   | 'crm:pipeline:manage'
   | 'crm:activities:read'
   | 'crm:activities:create'
+  | 'crm:activities:delete'
   | 'crm:tasks:read'
   | 'crm:tasks:create'
   | 'crm:tasks:update'
@@ -40,7 +44,7 @@ const rolePermissions: Record<Role, Permission[]> = {
     'crm:contacts:read', 'crm:contacts:create', 'crm:contacts:update', 'crm:contacts:delete',
     'crm:deals:read', 'crm:deals:create', 'crm:deals:update', 'crm:deals:delete',
     'crm:pipeline:manage',
-    'crm:activities:read', 'crm:activities:create',
+    'crm:activities:read', 'crm:activities:create', 'crm:activities:delete',
     'crm:tasks:read', 'crm:tasks:create', 'crm:tasks:update', 'crm:tasks:delete',
     'crm:notes:read', 'crm:notes:create', 'crm:notes:update', 'crm:notes:delete',
     'crm:settings:manage',
@@ -53,7 +57,7 @@ const rolePermissions: Record<Role, Permission[]> = {
     'crm:contacts:read', 'crm:contacts:create', 'crm:contacts:update', 'crm:contacts:delete',
     'crm:deals:read', 'crm:deals:create', 'crm:deals:update', 'crm:deals:delete',
     'crm:pipeline:manage',
-    'crm:activities:read', 'crm:activities:create',
+    'crm:activities:read', 'crm:activities:create', 'crm:activities:delete',
     'crm:tasks:read', 'crm:tasks:create', 'crm:tasks:update', 'crm:tasks:delete',
     'crm:notes:read', 'crm:notes:create', 'crm:notes:update', 'crm:notes:delete',
     'team:manage',
@@ -63,7 +67,7 @@ const rolePermissions: Record<Role, Permission[]> = {
     'crm:companies:read', 'crm:companies:create', 'crm:companies:update',
     'crm:contacts:read', 'crm:contacts:create', 'crm:contacts:update',
     'crm:deals:read', 'crm:deals:create', 'crm:deals:update',
-    'crm:activities:read', 'crm:activities:create',
+    'crm:activities:read', 'crm:activities:create', 'crm:activities:delete',
     'crm:tasks:read', 'crm:tasks:create', 'crm:tasks:update',
     'crm:notes:read', 'crm:notes:create', 'crm:notes:update',
   ],
@@ -97,6 +101,28 @@ export function can(role: Role | string | undefined, permission: Permission): bo
   if (!role) return false
   const permissions = getPermissionsForRole(role)
   return permissions.includes(permission)
+}
+
+export async function requirePermission(organizationId: string, permission: Permission) {
+  if (!isSupabaseConfigured()) return
+
+  const supabase = await createServerSupabaseClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Not authenticated')
+
+  const { data: member } = await supabase
+    .from('organization_members')
+    .select('role_id, roles!inner(slug)')
+    .eq('organization_id', organizationId)
+    .eq('user_id', user.id)
+    .single()
+
+  if (!member) throw new Error('Not a member of this organization')
+
+  const roleSlug = (member as any).roles?.slug
+  if (roleSlug && can(roleSlug, permission)) return
+
+  throw new Error(`Missing permission: ${permission}`)
 }
 
 export function usePermissions(role?: Role | string) {

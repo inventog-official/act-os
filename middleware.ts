@@ -8,7 +8,7 @@ function isSupabaseConfigured() {
     && url !== 'https://your-project.supabase.co'
 }
 
-export async function proxy(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   if (!isSupabaseConfigured()) {
     return NextResponse.next({ request })
   }

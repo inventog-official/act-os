@@ -1,5 +1,7 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server'
-import type { CrmLead, CrmCompany, CrmContact, CrmDeal, CrmActivity, CrmTask, CrmNote, CrmTimeline } from '@/lib/types/database'
+import { db } from '@/db'
+import { crmTimeline, organizationMembers, authUsers } from '@/db/schema'
+import { eq } from 'drizzle-orm'
 
 type EntityType = 'lead' | 'company' | 'contact' | 'deal' | 'activity' | 'note' | 'task'
 
@@ -24,31 +26,33 @@ export async function createTimelineEntry(params: {
   workspace_id: string | null
 }) {
   const user = await getCurrentUser()
-  const supabase = await createServerSupabaseClient()
 
-  const { error } = await supabase.from('crm_timeline').insert({
-    action: params.action,
-    description: params.description,
-    entity_type: params.entity_type,
-    entity_id: params.entity_id,
-    lead_id: params.lead_id || null,
-    company_id: params.company_id || null,
-    contact_id: params.contact_id || null,
-    deal_id: params.deal_id || null,
-    metadata: params.metadata || {},
-    organization_id: params.organization_id,
-    workspace_id: params.workspace_id,
-    created_by: user.id,
-  })
-
-  if (error) console.error('Timeline insert error:', error)
+  try {
+    await db.insert(crmTimeline).values({
+      action: params.action,
+      description: params.description,
+      entityType: params.entity_type,
+      entityId: params.entity_id,
+      leadId: params.lead_id || null,
+      companyId: params.company_id || null,
+      contactId: params.contact_id || null,
+      dealId: params.deal_id || null,
+      metadata: params.metadata || {},
+      organizationId: params.organization_id,
+      workspaceId: params.workspace_id,
+      createdBy: user.id,
+    })
+  } catch (e) {
+    console.error('Timeline insert error:', e)
+  }
 }
 
 export async function getOrganizationMembers(organizationId: string) {
-  const supabase = await createServerSupabaseClient()
-  const { data } = await supabase
-    .from('organization_members')
-    .select('user_id, user:auth.users(id, email)')
-    .eq('organization_id', organizationId)
-  return data || []
+  const rows = await db.select({
+    userId: organizationMembers.userId,
+    email: authUsers.email,
+  }).from(organizationMembers)
+    .leftJoin(authUsers, eq(organizationMembers.userId, authUsers.id))
+    .where(eq(organizationMembers.organizationId, organizationId))
+  return rows.map(r => ({ user_id: r.userId, user: { email: r.email } }))
 }

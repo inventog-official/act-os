@@ -100,9 +100,9 @@ export function LoginForm() {
           <input type="checkbox" className="rounded border-zinc-300 dark:border-zinc-700" />
           Remember me
         </label>
-        <button type="button" className="text-sm text-zinc-900 underline-offset-4 hover:underline dark:text-zinc-100">
+        <Link href="/forgot-password" className="text-sm text-zinc-900 underline-offset-4 hover:underline dark:text-zinc-100">
           Forgot password?
-        </button>
+        </Link>
       </div>
 
       <Button type="submit" className="w-full" disabled={isLoading}>

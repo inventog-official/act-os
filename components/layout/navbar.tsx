@@ -1,13 +1,11 @@
 'use client'
 
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Search,
-  Bell,
   Sun,
   Moon,
-  Command,
   Menu,
   LogOut,
   User,
@@ -22,7 +20,6 @@ import { useMediaQuery } from '@/hooks/use-media-query'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Badge } from '@/components/ui/badge'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -31,6 +28,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { NotificationsPopover } from '@/components/notifications/notifications-popover'
 import { getInitials } from '@/lib/utils'
 
 export function Navbar({ orgSlug }: { orgSlug: string }) {
@@ -40,7 +38,9 @@ export function Navbar({ orgSlug }: { orgSlug: string }) {
   const { toggleSidebar, setSidebarOpen, setCommandPaletteOpen, sidebarOpen } = useUIStore()
   const { currentOrganization } = useOrganizationStore()
   const isMobile = useMediaQuery('(max-width: 768px)')
-  const [notifications] = useState(3)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => { setMounted(true) }, [])
 
   const handleThemeToggle = useCallback(() => {
     setTheme(theme === 'dark' ? 'light' : 'dark')
@@ -82,28 +82,10 @@ export function Navbar({ orgSlug }: { orgSlug: string }) {
             onClick={handleThemeToggle}
             className="text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
           >
-            {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            {!mounted ? <div className="h-4 w-4" /> : theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </Button>
 
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="relative text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200">
-                <Bell className="h-4 w-4" />
-                {notifications > 0 && (
-                  <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-medium text-white">
-                    {notifications}
-                  </span>
-                )}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-80">
-              <DropdownMenuLabel>Notifications</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <div className="px-3 py-8 text-center text-sm text-zinc-500">
-                No new notifications
-              </div>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <NotificationsPopover />
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

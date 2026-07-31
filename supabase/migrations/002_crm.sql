@@ -325,24 +325,44 @@ CREATE POLICY "Members can insert CRM leads" ON crm_leads FOR INSERT
 CREATE POLICY "Members can update CRM leads" ON crm_leads FOR UPDATE
   USING (organization_id IN (SELECT organization_id FROM organization_members WHERE user_id = auth.uid()));
 
--- Apply same insert/update policies for all CRM tables (simplified)
-CREATE POLICY "Members can insert" ON crm_companies FOR INSERT WITH CHECK (true);
-CREATE POLICY "Members can update" ON crm_companies FOR UPDATE USING (true);
-CREATE POLICY "Members can insert" ON crm_contacts FOR INSERT WITH CHECK (true);
-CREATE POLICY "Members can update" ON crm_contacts FOR UPDATE USING (true);
-CREATE POLICY "Members can insert" ON crm_deals FOR INSERT WITH CHECK (true);
-CREATE POLICY "Members can update" ON crm_deals FOR UPDATE USING (true);
-CREATE POLICY "Members can insert" ON crm_pipelines FOR INSERT WITH CHECK (true);
-CREATE POLICY "Members can update" ON crm_pipelines FOR UPDATE USING (true);
-CREATE POLICY "Members can insert" ON crm_pipeline_stages FOR INSERT WITH CHECK (true);
-CREATE POLICY "Members can update" ON crm_pipeline_stages FOR UPDATE USING (true);
-CREATE POLICY "Members can manage" ON crm_activities FOR INSERT WITH CHECK (true);
-CREATE POLICY "Members can manage" ON crm_activities FOR UPDATE USING (true);
-CREATE POLICY "Members can manage" ON crm_notes FOR INSERT WITH CHECK (true);
-CREATE POLICY "Members can manage" ON crm_notes FOR UPDATE USING (true);
-CREATE POLICY "Members can manage" ON crm_tasks FOR INSERT WITH CHECK (true);
-CREATE POLICY "Members can manage" ON crm_tasks FOR UPDATE USING (true);
-CREATE POLICY "Members can insert" ON crm_timeline FOR INSERT WITH CHECK (true);
-CREATE POLICY "Members can view" ON crm_timeline FOR SELECT USING (true);
-CREATE POLICY "Members can manage" ON crm_tags FOR INSERT WITH CHECK (true);
-CREATE POLICY "Members can manage" ON crm_entity_tags FOR INSERT WITH CHECK (true);
+-- Apply same insert/update policies for all CRM tables (organization-scoped)
+CREATE POLICY "Members can insert companies" ON crm_companies FOR INSERT
+  WITH CHECK (organization_id IN (SELECT organization_id FROM organization_members WHERE user_id = auth.uid()));
+CREATE POLICY "Members can update companies" ON crm_companies FOR UPDATE
+  USING (organization_id IN (SELECT organization_id FROM organization_members WHERE user_id = auth.uid()));
+CREATE POLICY "Members can insert contacts" ON crm_contacts FOR INSERT
+  WITH CHECK (organization_id IN (SELECT organization_id FROM organization_members WHERE user_id = auth.uid()));
+CREATE POLICY "Members can update contacts" ON crm_contacts FOR UPDATE
+  USING (organization_id IN (SELECT organization_id FROM organization_members WHERE user_id = auth.uid()));
+CREATE POLICY "Members can insert deals" ON crm_deals FOR INSERT
+  WITH CHECK (organization_id IN (SELECT organization_id FROM organization_members WHERE user_id = auth.uid()));
+CREATE POLICY "Members can update deals" ON crm_deals FOR UPDATE
+  USING (organization_id IN (SELECT organization_id FROM organization_members WHERE user_id = auth.uid()));
+CREATE POLICY "Members can insert pipelines" ON crm_pipelines FOR INSERT
+  WITH CHECK (organization_id IN (SELECT organization_id FROM organization_members WHERE user_id = auth.uid()));
+CREATE POLICY "Members can update pipelines" ON crm_pipelines FOR UPDATE
+  USING (organization_id IN (SELECT organization_id FROM organization_members WHERE user_id = auth.uid()));
+CREATE POLICY "Members can insert pipeline stages" ON crm_pipeline_stages FOR INSERT
+  WITH CHECK (pipeline_id IN (SELECT id FROM crm_pipelines WHERE organization_id IN (SELECT organization_id FROM organization_members WHERE user_id = auth.uid())));
+CREATE POLICY "Members can update pipeline stages" ON crm_pipeline_stages FOR UPDATE
+  USING (pipeline_id IN (SELECT id FROM crm_pipelines WHERE organization_id IN (SELECT organization_id FROM organization_members WHERE user_id = auth.uid())));
+CREATE POLICY "Members can insert activities" ON crm_activities FOR INSERT
+  WITH CHECK (organization_id IN (SELECT organization_id FROM organization_members WHERE user_id = auth.uid()));
+CREATE POLICY "Members can update activities" ON crm_activities FOR UPDATE
+  USING (organization_id IN (SELECT organization_id FROM organization_members WHERE user_id = auth.uid()));
+CREATE POLICY "Members can insert notes" ON crm_notes FOR INSERT
+  WITH CHECK (organization_id IN (SELECT organization_id FROM organization_members WHERE user_id = auth.uid()));
+CREATE POLICY "Members can update notes" ON crm_notes FOR UPDATE
+  USING (organization_id IN (SELECT organization_id FROM organization_members WHERE user_id = auth.uid()));
+CREATE POLICY "Members can insert tasks" ON crm_tasks FOR INSERT
+  WITH CHECK (organization_id IN (SELECT organization_id FROM organization_members WHERE user_id = auth.uid()));
+CREATE POLICY "Members can update tasks" ON crm_tasks FOR UPDATE
+  USING (organization_id IN (SELECT organization_id FROM organization_members WHERE user_id = auth.uid()));
+CREATE POLICY "Members can insert timeline" ON crm_timeline FOR INSERT
+  WITH CHECK (organization_id IN (SELECT organization_id FROM organization_members WHERE user_id = auth.uid()));
+CREATE POLICY "Members can view timeline" ON crm_timeline FOR SELECT
+  USING (organization_id IN (SELECT organization_id FROM organization_members WHERE user_id = auth.uid()));
+CREATE POLICY "Members can insert tags" ON crm_tags FOR INSERT
+  WITH CHECK (organization_id IN (SELECT organization_id FROM organization_members WHERE user_id = auth.uid()));
+CREATE POLICY "Members can insert entity tags" ON crm_entity_tags FOR INSERT
+  WITH CHECK (tag_id IN (SELECT id FROM crm_tags WHERE organization_id IN (SELECT organization_id FROM organization_members WHERE user_id = auth.uid())));

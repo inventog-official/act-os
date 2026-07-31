@@ -4,6 +4,7 @@ import { useState, use, useEffect, useCallback } from 'react'
 import { Plus, Search, Loader2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useOrganizationStore } from '@/lib/store'
+import { useRouter } from 'next/navigation'
 import { DashboardShell } from '@/components/layout/dashboard-shell'
 import { CrmShell } from '@/components/crm/crm-shell'
 import { ContactTable } from '@/components/crm/contact-table'
@@ -15,6 +16,7 @@ import type { CrmContact } from '@/lib/types/database'
 
 export default function ContactsPage({ params }: { params: Promise<{ orgSlug: string }> }) {
   const { orgSlug } = use(params)
+  const router = useRouter()
   const supabase = createClient()
   const { currentOrganization } = useOrganizationStore()
 
@@ -103,6 +105,7 @@ export default function ContactsPage({ params }: { params: Promise<{ orgSlug: st
             contacts={filtered}
             onEdit={(contact) => {}}
             onDelete={(id) => {}}
+            onRowClick={(contact) => router.push(`/${orgSlug}/crm/contacts/${contact.id}`)}
           />
         </div>
 

@@ -1,11 +1,3 @@
-export interface NavItem {
-  title: string
-  href: string
-  icon: string
-  badge?: string
-  items?: NavItem[]
-}
-
 export const crmNavigation: NavItem[] = [
   {
     title: 'CRM Dashboard',
@@ -28,6 +20,11 @@ export const crmNavigation: NavItem[] = [
     icon: 'Users',
   },
   {
+    title: 'Deals',
+    href: '/crm/deals',
+    icon: 'DollarSign',
+  },
+  {
     title: 'Pipeline',
     href: '/crm/pipeline',
     icon: 'KanbanSquare',
@@ -42,6 +39,18 @@ export const crmNavigation: NavItem[] = [
     href: '/crm/tasks',
     icon: 'CheckSquare',
   },
+]
+
+export const financeNavigation: NavItem[] = [
+  { title: 'Dashboard', href: '/finance', icon: 'LayoutDashboard' },
+  { title: 'Quotations', href: '/finance/quotations', icon: 'FileText' },
+  { title: 'Invoices', href: '/finance/invoices', icon: 'Receipt' },
+  { title: 'Payments', href: '/finance/payments', icon: 'CreditCard' },
+  { title: 'Expenses', href: '/finance/expenses', icon: 'Wallet' },
+  { title: 'Products', href: '/finance/products', icon: 'Package' },
+  { title: 'Purchase Orders', href: '/finance/purchase-orders', icon: 'ShoppingCart' },
+  { title: 'Tax Rates', href: '/finance/tax-rates', icon: 'Percent' },
+  { title: 'Reports', href: '/finance/reports', icon: 'BarChart3' },
 ]
 
 export interface NavItem {

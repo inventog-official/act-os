@@ -1,6 +1,21 @@
+import { db } from '@/db'
+import { crmCompanies } from '@/db/schema'
+import { eq } from 'drizzle-orm'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { getCurrentUser, createTimelineEntry } from './utils'
+import { requirePermission } from '@/lib/auth/permissions'
 import type { CrmCompany } from '@/lib/types/database'
+import type { Permission } from '@/lib/auth/permissions'
+
+async function getCompanyOrgId(id: string): Promise<string> {
+  const supabase = await createServerSupabaseClient()
+  const { data } = await supabase
+    .from('crm_companies')
+    .select('organization_id')
+    .eq('id', id)
+    .single()
+  return data?.organization_id || ''
+}
 
 export async function getCompanies(organizationId: string, workspaceId: string | null) {
   const supabase = await createServerSupabaseClient()
@@ -53,16 +68,35 @@ export async function createCompany(input: {
   workspace_id: string | null
   assigned_to?: string | null
 }) {
+  await requirePermission(input.organization_id, 'crm:companies:create')
   const user = await getCurrentUser()
-  const supabase = await createServerSupabaseClient()
 
-  const { data, error } = await supabase
-    .from('crm_companies')
-    .insert({ ...input, created_by: user.id, updated_by: user.id })
-    .select()
-    .single()
-
-  if (error) throw error
+  const [data] = await db
+    .insert(crmCompanies)
+    .values({
+      name: input.name,
+      industry: input.industry ?? null,
+      employeeCount: input.employee_count ?? null,
+      revenue: input.revenue != null ? String(input.revenue) : null,
+      addressLine1: input.address_line1 ?? null,
+      addressLine2: input.address_line2 ?? null,
+      city: input.city ?? null,
+      state: input.state ?? null,
+      zip: input.zip ?? null,
+      country: input.country ?? null,
+      website: input.website ?? null,
+      phone: input.phone ?? null,
+      email: input.email ?? null,
+      gstNumber: input.gst_number ?? null,
+      logoUrl: input.logo_url ?? null,
+      description: input.description ?? null,
+      organizationId: input.organization_id,
+      workspaceId: input.workspace_id,
+      assignedTo: input.assigned_to ?? null,
+      createdBy: user.id,
+      updatedBy: user.id,
+    })
+    .returning()
 
   await createTimelineEntry({
     action: 'company_created',
@@ -74,30 +108,49 @@ export async function createCompany(input: {
     workspace_id: input.workspace_id,
   })
 
-  return data as CrmCompany
+  return data as unknown as CrmCompany
 }
 
 export async function updateCompany(id: string, input: Partial<CrmCompany>) {
+  const orgId = await getCompanyOrgId(id)
+  if (orgId) await requirePermission(orgId, 'crm:companies:update')
   const user = await getCurrentUser()
-  const supabase = await createServerSupabaseClient()
 
-  const { data, error } = await supabase
-    .from('crm_companies')
-    .update({ ...input, updated_by: user.id })
-    .eq('id', id)
-    .select()
-    .single()
+  const vals: Record<string, unknown> = { updatedBy: user.id }
+  if (input.name !== undefined) vals.name = input.name
+  if (input.industry !== undefined) vals.industry = input.industry
+  if (input.employee_count !== undefined) vals.employeeCount = input.employee_count
+  if (input.revenue !== undefined) vals.revenue = input.revenue
+  if (input.address_line1 !== undefined) vals.addressLine1 = input.address_line1
+  if (input.address_line2 !== undefined) vals.addressLine2 = input.address_line2
+  if (input.city !== undefined) vals.city = input.city
+  if (input.state !== undefined) vals.state = input.state
+  if (input.zip !== undefined) vals.zip = input.zip
+  if (input.country !== undefined) vals.country = input.country
+  if (input.website !== undefined) vals.website = input.website
+  if (input.phone !== undefined) vals.phone = input.phone
+  if (input.email !== undefined) vals.email = input.email
+  if (input.gst_number !== undefined) vals.gstNumber = input.gst_number
+  if (input.logo_url !== undefined) vals.logoUrl = input.logo_url
+  if (input.description !== undefined) vals.description = input.description
+  if (input.workspace_id !== undefined) vals.workspaceId = input.workspace_id
+  if (input.assigned_to !== undefined) vals.assignedTo = input.assigned_to
 
-  if (error) throw error
-  return data as CrmCompany
+  const [data] = await db
+    .update(crmCompanies)
+    .set(vals)
+    .where(eq(crmCompanies.id, id))
+    .returning()
+
+  return data as unknown as CrmCompany
 }
 
 export async function deleteCompany(id: string) {
+  const orgId = await getCompanyOrgId(id)
+  if (orgId) await requirePermission(orgId, 'crm:companies:delete')
   const user = await getCurrentUser()
-  const supabase = await createServerSupabaseClient()
-  const { error } = await supabase
-    .from('crm_companies')
-    .update({ deleted_at: new Date().toISOString(), updated_by: user.id })
-    .eq('id', id)
-  if (error) throw error
+  await db
+    .update(crmCompanies)
+    .set({ deletedAt: new Date(), updatedBy: user.id })
+    .where(eq(crmCompanies.id, id))
 }

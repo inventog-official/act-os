@@ -15,6 +15,7 @@ import {
   ChevronRight,
   Settings,
   Plus,
+  Wallet,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useUIStore } from '@/lib/store'
@@ -28,6 +29,7 @@ const navItems = [
   { title: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { title: 'CRM', href: '/crm', icon: ContactRound },
   { title: 'Projects', href: '/projects', icon: FolderKanban },
+  { title: 'Finance', href: '/finance', icon: Wallet },
   { title: 'Tasks', href: '/tasks', icon: CheckSquare },
   { title: 'Teams', href: '/teams', icon: Users },
   { title: 'Calendar', href: '/calendar', icon: Calendar },
