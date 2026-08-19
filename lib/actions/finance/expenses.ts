@@ -118,7 +118,6 @@ export async function uploadExpenseReceipt(formData: FormData) {
 
   return { path: data.path, url: publicUrl.publicUrl, uploadedBy: user.id }
 }
-
 export async function getExpenseById(id: string) {
   const supabase = await createServerSupabaseClient()
   const { data, error } = await supabase

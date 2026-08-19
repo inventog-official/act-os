@@ -370,7 +370,6 @@ CREATE POLICY "Members can view product categories" ON finance_product_categorie
   USING (organization_id IN (SELECT organization_id FROM organization_members WHERE user_id = auth.uid()));
 CREATE POLICY "Members can manage product categories" ON finance_product_categories FOR ALL
   USING (organization_id IN (SELECT organization_id FROM organization_members WHERE user_id = auth.uid()));
-
 CREATE POLICY "Members can view finance products" ON finance_products FOR SELECT
   USING (organization_id IN (SELECT organization_id FROM organization_members WHERE user_id = auth.uid()));
 CREATE POLICY "Members can insert finance products" ON finance_products FOR INSERT

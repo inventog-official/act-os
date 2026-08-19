@@ -40,7 +40,6 @@ export async function getTaxRatesMap(organizationId: string): Promise<Record<str
   for (const r of (data || [])) map[r.id as string] = Number(r.rate) || 0
   return map
 }
-
 export function calculateDocumentTotals(items: { quantity: number; unitPrice: number; discountPercent: number; taxRate?: number }[], discountType?: string, discountValue?: number, taxRate?: number) {
   const subtotal = items.reduce((sum, i) => sum + calculateItemTotal(i.quantity, i.unitPrice, i.discountPercent || 0), 0)
   const discountAmount = discountType === 'percentage' ? subtotal * ((discountValue || 0) / 100) : discountType === 'fixed' ? (discountValue || 0) : 0

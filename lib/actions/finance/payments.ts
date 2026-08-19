@@ -196,7 +196,6 @@ export async function recordRefund(input: {
 
   return payment
 }
-
 export async function updatePayment(
   id: string,
   input: {

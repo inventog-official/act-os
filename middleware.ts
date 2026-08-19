@@ -13,7 +13,6 @@ function isSupabaseConfigured() {
 function hasSessionCookie(request: NextRequest) {
   return request.cookies.getAll().some((c) => c.name.startsWith('sb-'))
 }
-
 export async function middleware(request: NextRequest) {
   if (!isSupabaseConfigured()) {
     return NextResponse.next({ request })

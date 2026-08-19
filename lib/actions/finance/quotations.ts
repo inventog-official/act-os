@@ -309,7 +309,6 @@ export async function sendQuotationEmail(id: string) {
 
   return { ...q, status: delivered ? 'sent' : q.status, email: { delivered, reason } }
 }
-
 export async function convertQuoteToInvoice(id: string) {
   const supabase = await createServerSupabaseClient()
   const { data: quotation } = await supabase

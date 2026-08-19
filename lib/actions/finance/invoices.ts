@@ -3,7 +3,7 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { db } from '@/db'
 import { financeInvoices, financeInvoiceItems } from '@/db/schema'
-import { eq, and, isNull, lte } from 'drizzle-orm'
+import { eq, and, isNull, inArray, lte } from 'drizzle-orm'
 import { generateNumber, calculateDocumentTotals, calculateItemTotal, calculateItemTax, getTaxRatesMap, getCurrentUser } from './utils'
 import { sendEmail, buildInvoiceEmailHtml, getOrganizationEmailSettings } from '@/lib/email'
 import { generatePdf } from '@/lib/pdf/template'
@@ -435,7 +435,6 @@ export async function getRecurringInvoicesDue() {
 
   return data as any[]
 }
-
 function advanceRecurringDate(date: Date, frequency: string | null): Date {
   const next = new Date(date)
   switch (frequency) {
@@ -641,3 +640,4 @@ export async function createInvoiceFromTimeEntries(projectId: string, options?: 
 
   return data
 }
+

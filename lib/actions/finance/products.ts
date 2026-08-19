@@ -70,7 +70,6 @@ export async function deleteProductCategory(id: string) {
     .where(eq(financeProductCategories.id, id))
   return { success: true }
 }
-
 export async function getProducts(
   organizationId: string,
   workspaceId?: string,
