@@ -8,6 +8,7 @@ import { ProductSection } from '@/components/marketing/ProductSection'
 import { OperationsSection } from '@/components/marketing/OperationsSection'
 import { WorkflowSection } from '@/components/marketing/WorkflowSection'
 import { IntelligenceSection } from '@/components/marketing/IntelligenceSection'
+import { GeminiEffectSection } from '@/components/marketing/GeminiEffectSection'
 import { CommandCenter } from '@/components/marketing/CommandCenter'
 import { InventorySection } from '@/components/marketing/InventorySection'
 import { PeopleSection } from '@/components/marketing/PeopleSection'
@@ -43,6 +44,9 @@ export default function LandingPage() {
 
         {/* 06 — INTELLIGENCE: Context & Next Directives */}
         <IntelligenceSection />
+
+        {/* SIGNATURE WEAVE — Google Gemini Neural Waveform */}
+        <GeminiEffectSection />
 
         {/* 07 — COMMAND CENTER: Natural Language Terminal */}
         <CommandCenter />
