@@ -143,14 +143,15 @@ export function OperationsSection() {
                 {Array.from({ length: 32 }, (_, i) => {
                   const base = current.health > 98 ? 65 : 40
                   const variance = Math.sin(i * 0.5 + activeStateIndex) * 25
-                  const h = Math.max(15, Math.min(100, base + variance))
+                  const h = Math.round(Math.max(15, Math.min(100, base + variance)))
+                  const isAlertBar = i === 18 && current.health < 98
                   return (
                     <div
                       key={i}
                       className="flex-1 bg-white/30 rounded-t-[2px] transition-all duration-500"
                       style={{
                         height: `${h}%`,
-                        backgroundColor: i === 18 && current.health < 98 ? '#FFFFFF' : undefined,
+                        ...(isAlertBar ? { backgroundColor: '#FFFFFF' } : {}),
                       }}
                     />
                   )
@@ -161,7 +162,7 @@ export function OperationsSection() {
               <div className="p-4 rounded-xl bg-black border border-white/10 font-mono text-xs text-neutral-300 space-y-1">
                 <div className="text-[10px] text-neutral-500 flex justify-between">
                   <span>AUDIT STREAM</span>
-                  <span>UTC {new Date().toISOString().slice(11, 19)}</span>
+                  <span>UTC 14:00:00</span>
                 </div>
                 <div className="text-emerald-400 text-[11px] font-semibold">
                   &gt; {current.logSnippet}

@@ -23,9 +23,9 @@ export function ProductSection() {
   }, [])
 
   // Interpolated visual values
-  const scale = 0.88 + zoomProgress * 0.12
-  const blur = Math.max(0, (1 - zoomProgress) * 10)
-  const opacity = 0.3 + zoomProgress * 0.7
+  const scale = Number((0.88 + zoomProgress * 0.12).toFixed(3))
+  const blur = Math.round(Math.max(0, (1 - zoomProgress) * 10))
+  const opacity = Number((0.3 + zoomProgress * 0.7).toFixed(3))
 
   return (
     <section
@@ -158,7 +158,7 @@ export function ProductSection() {
                       <div key={i} className="flex-1 flex flex-col items-center gap-1 group">
                         <div
                           className="w-full bg-white/20 group-hover:bg-white transition-all rounded-t-[2px]"
-                          style={{ height: `${(v / 150) * 100}%` }}
+                          style={{ height: `${Math.round((v / 150) * 100)}%` }}
                         />
                       </div>
                     ))}

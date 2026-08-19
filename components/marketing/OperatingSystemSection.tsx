@@ -71,8 +71,8 @@ export function OperatingSystemSection() {
             <div
               className="absolute flex flex-col items-center justify-center transition-all duration-700 pointer-events-auto"
               style={{
-                transform: `scale(${Math.min(1, (scrollProgress - 0.8) * 5)})`,
-                opacity: (scrollProgress - 0.8) * 5,
+                transform: `scale(${Number(Math.min(1, (scrollProgress - 0.8) * 5).toFixed(2))})`,
+                opacity: Number(((scrollProgress - 0.8) * 5).toFixed(2)),
               }}
             >
               <div className="w-16 h-16 rounded-2xl bg-white flex items-center justify-center shadow-2xl mb-4">

@@ -111,9 +111,9 @@ export function ChaosSection() {
         <div
           className="absolute w-36 h-36 rounded-full border border-white/20 flex items-center justify-center transition-all duration-700 pointer-events-none"
           style={{
-            transform: `scale(${0.6 + convergence * 0.5})`,
-            opacity: convergence > 0.1 ? convergence : 0.05,
-            boxShadow: `0 0 ${40 * convergence}px rgba(255, 255, 255, 0.1)`,
+            transform: `scale(${(0.6 + convergence * 0.5).toFixed(2)})`,
+            opacity: convergence > 0.1 ? Number(convergence.toFixed(2)) : 0.05,
+            boxShadow: `0 0 ${Math.round(40 * convergence)}px rgba(255, 255, 255, 0.1)`,
           }}
         >
           <div className="w-2 h-2 rounded-full bg-white animate-ping" />
@@ -134,7 +134,7 @@ export function ChaosSection() {
                 key={frag.id}
                 className="absolute transition-transform duration-300 ease-out select-none"
                 style={{
-                  transform: `translate3d(${currentX * 6.5}px, ${currentY * 4.2}px, 0) rotate(${currentRot}deg)`,
+                  transform: `translate3d(${Math.round(currentX * 6.5)}px, ${Math.round(currentY * 4.2)}px, 0) rotate(${Math.round(currentRot)}deg)`,
                 }}
               >
                 <div
