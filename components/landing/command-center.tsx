@@ -1,177 +1,147 @@
 'use client'
 
-import { Reveal } from '@/components/landing/reveal'
 import { useEffect, useRef, useState } from 'react'
-import {
-  Search,
-  DollarSign,
-  Activity,
-  Box,
-  Users,
-  ContactRound,
-  Sparkles,
-  TrendingUp,
-  AlertTriangle,
-} from 'lucide-react'
+import { Reveal } from '@/components/landing/reveal'
+import { GradientAtmosphere } from '@/components/landing/gradient-atmosphere'
+import { Search, ArrowRight } from 'lucide-react'
 
-const query = "What's happening across my business?"
+const queryText = 'What needs my attention today?'
 
-const categories = [
+const insights = [
   {
-    label: 'Revenue',
-    icon: DollarSign,
-    insight: '$284K this month — on track for best quarter',
-    status: 'positive',
+    category: 'OPERATIONS',
+    headline: 'Engineering SLA variance detected',
+    detail: 'Sprint 24 velocity dipped 4% due to API dependency hold. Resolved 2 hours ago.',
   },
   {
-    label: 'Operations',
-    icon: Activity,
-    insight: '94.2% efficiency — 2 alerts require attention',
-    status: 'warning',
+    category: 'INVENTORY',
+    headline: '3 core hardware SKUs below safety stock',
+    detail: 'Automated purchase request PR-2026-089 prepared for vendor TechDistro.',
   },
   {
-    label: 'Inventory',
-    icon: Box,
-    insight: '3 items below reorder threshold',
-    status: 'warning',
+    category: 'TASKS',
+    headline: '4 executive sign-offs pending review',
+    detail: '2 enterprise quotes ($48k, $120k) and 2 contractor agreements.',
   },
   {
-    label: 'People',
-    icon: Users,
-    insight: '48 active — team velocity up 12%',
-    status: 'positive',
-  },
-  {
-    label: 'Customers',
-    icon: ContactRound,
-    insight: '7 new leads this week — 2 in negotiation',
-    status: 'positive',
+    category: 'REVENUE',
+    headline: 'Monthly recurring revenue tracking +12.4%',
+    detail: 'Enterprise expansion on schedule to surpass Q3 milestone by $34,000.',
   },
 ]
 
 export function CommandCenter() {
-  const [typedText, setTypedText] = useState('')
+  const [typed, setTyped] = useState('')
   const [showResults, setShowResults] = useState(false)
-  const [isVisible, setIsVisible] = useState(false)
+  const [inView, setInView] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
-  const started = useRef(false)
+  const hasAnimated = useRef(false)
 
   useEffect(() => {
     const el = ref.current
     if (!el) return
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting && !started.current) {
-          started.current = true
-          setIsVisible(true)
-          observer.unobserve(entry.target)
+        if (entry.isIntersecting && !hasAnimated.current) {
+          hasAnimated.current = true
+          setInView(true)
         }
       },
-      { threshold: 0.2 }
+      { threshold: 0.25 }
     )
     observer.observe(el)
     return () => observer.disconnect()
   }, [])
 
   useEffect(() => {
-    if (!isVisible) return
+    if (!inView) return
+
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     if (reduced) {
-      setTypedText(query)
+      setTyped(queryText)
       setShowResults(true)
       return
     }
+
     let i = 0
-    const startDelay = setTimeout(() => {
+    const delayTimer = setTimeout(() => {
       const interval = setInterval(() => {
         i++
-        setTypedText(query.slice(0, i))
-        if (i >= query.length) {
+        setTyped(queryText.slice(0, i))
+        if (i >= queryText.length) {
           clearInterval(interval)
-          setTimeout(() => setShowResults(true), 500)
+          setTimeout(() => setShowResults(true), 400)
         }
-      }, 30)
+      }, 35)
       return () => clearInterval(interval)
-    }, 600)
-    return () => clearTimeout(startDelay)
-  }, [isVisible])
+    }, 500)
+
+    return () => clearTimeout(delayTimer)
+  }, [inView])
 
   return (
-    <section className="lp-section" style={{ background: 'var(--lp-bg)' }}>
-      {/* Background glow */}
-      <div className="lp-glow-subtle" style={{ width: '700px', height: '700px', left: '50%', top: '50%', transform: 'translate(-50%, -50%)' }} />
+    <section className="lp-section bg-black" id="intelligence">
+      {/* Soft Purple -> Pink -> Orange Atmospheric Gradient */}
+      <GradientAtmosphere variant="sunset" intensity="medium" />
 
-      <div className="lp-container">
-        <Reveal variant="up">
-          <div className="text-center mb-12">
-            <span className="lp-eyebrow">Command Center</span>
-            <h2 className="lp-headline-display mt-4">
-              Ask your business <span className="lp-text-gradient">anything.</span>
+      <div className="relative z-10 lp-container">
+        {/* Header */}
+        <div className="text-center max-w-3xl mx-auto mb-20 sm:mb-28">
+          <Reveal variant="up">
+            <span className="lp-eyebrow mb-4 sm:mb-6">INTELLIGENCE</span>
+          </Reveal>
+          <Reveal variant="up" delay={100}>
+            <h2 className="lp-headline text-white font-normal mt-3">
+              Ask your business anything.
             </h2>
-          </div>
-        </Reveal>
+          </Reveal>
+          <Reveal variant="up" delay={200}>
+            <p className="mt-6 text-base sm:text-lg text-[#A1A1A1] leading-relaxed font-normal max-w-2xl mx-auto">
+              Natural language intelligence that analyzes your live cross-department data and surfaces critical business context.
+            </p>
+          </Reveal>
+        </div>
 
-        <div ref={ref} className="relative mx-auto max-w-2xl">
-          <div
-            className="rounded-2xl border border-[var(--lp-border-accent)] bg-[var(--lp-bg-secondary)] shadow-2xl shadow-black/50 overflow-hidden"
-            style={{
-              boxShadow: showResults
-                ? '0 0 80px rgba(22,131,255,0.1), 0 25px 60px rgba(0,0,0,0.5)'
-                : '0 25px 60px rgba(0,0,0,0.5)',
-            }}
-          >
-            {/* Search header */}
-            <div className="flex items-center gap-3 px-5 py-4 border-b border-[var(--lp-border)]">
-              <Search className="h-5 w-5 text-[var(--lp-text-muted)]" />
-              <div className="flex-1">
-                <p className="text-[15px] text-[var(--lp-text)]">
-                  {typedText}
-                  {typedText.length < query.length && isVisible && (
-                    <span
-                      className="inline-block w-0.5 h-5 bg-[var(--lp-accent)] ml-0.5 align-middle"
-                      style={{ animation: 'lp-typing-cursor 0.8s ease-in-out infinite' }}
-                    />
-                  )}
-                </p>
+        {/* Monochrome Command Center */}
+        <div ref={ref} className="mx-auto max-w-3xl">
+          <div className="rounded-2xl border border-white/[0.12] bg-[#0A0A0A] shadow-[0_30px_90px_rgba(0,0,0,0.8)] overflow-hidden">
+            {/* Input Bar */}
+            <div className="flex items-center gap-4 px-6 py-5 border-b border-white/[0.08] bg-black/60">
+              <Search className="h-5 w-5 text-[#666666] shrink-0" />
+              <div className="flex-1 text-[15px] font-normal text-white flex items-center">
+                {typed.length === 0 && !inView && (
+                  <span className="text-[#666666]">Ask ACT OS anything…</span>
+                )}
+                <span>{typed}</span>
+                {typed.length < queryText.length && inView && (
+                  <span className="inline-block w-0.5 h-5 bg-white ml-1 animate-[lp-blink_0.8s_ease-in-out_infinite]" />
+                )}
               </div>
             </div>
 
-            {/* Results */}
-            {showResults && (
-              <div className="p-5 space-y-3">
-                {/* AI summary */}
+            {/* Staggered Intelligence Results */}
+            <div className="p-6 sm:p-8 space-y-4">
+              {insights.map((item, idx) => (
                 <div
-                  className="flex items-start gap-3 p-4 rounded-xl bg-[var(--lp-surface)] border border-[var(--lp-border)]"
-                  style={{ animation: 'lp-slide-in-results 0.4s ease-out both' }}
+                  key={item.category}
+                  className="p-5 rounded-xl bg-black border border-white/[0.06] transition-all duration-500 hover:border-white/[0.2]"
+                  style={{
+                    opacity: showResults ? 1 : 0,
+                    transform: showResults ? 'translateY(0)' : 'translateY(16px)',
+                    transitionDelay: `${idx * 90}ms`,
+                  }}
                 >
-                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border" style={{ background: 'rgba(22,131,255,0.1)', borderColor: 'rgba(22,131,255,0.2)' }}>
-                    <Sparkles className="h-3.5 w-3.5 text-[var(--lp-accent)]" />
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[11px] font-medium tracking-wider text-[#666666] uppercase">
+                      {item.category}
+                    </span>
+                    <ArrowRight className="h-3.5 w-3.5 text-[#666666]" />
                   </div>
-                  <p className="text-[13px] leading-relaxed text-[var(--lp-text-secondary)]">
-                    Your business is performing well overall. Revenue is trending 18% above last quarter. 
-                    Two operational areas need attention, and 3 inventory items are approaching reorder thresholds.
-                  </p>
+                  <h4 className="text-[14px] font-normal text-white">{item.headline}</h4>
+                  <p className="text-[12px] text-[#A1A1A1] mt-1 leading-relaxed font-normal">{item.detail}</p>
                 </div>
-
-                {/* Category cards */}
-                {categories.map((cat, i) => (
-                  <div
-                    key={cat.label}
-                    className="flex items-center gap-3.5 px-4 py-3 rounded-xl bg-[var(--lp-surface)] border border-[var(--lp-border)] transition-all hover:border-[var(--lp-border-accent)]"
-                    style={{ animation: `lp-slide-in-results 0.3s ease-out ${(i + 1) * 100}ms both` }}
-                  >
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--lp-bg)] border border-[var(--lp-border)]">
-                      <cat.icon className="h-4 w-4 text-[var(--lp-accent)]" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <span className="text-[12px] font-semibold text-[var(--lp-text)]">{cat.label}</span>
-                      <p className="text-[11px] text-[var(--lp-text-muted)] truncate">{cat.insight}</p>
-                    </div>
-                    <div className={`h-2 w-2 rounded-full shrink-0 ${cat.status === 'positive' ? 'bg-emerald-400' : 'bg-amber-400'}`} />
-                  </div>
-                ))}
-              </div>
-            )}
+              ))}
+            </div>
           </div>
         </div>
       </div>

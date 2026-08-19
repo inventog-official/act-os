@@ -1,48 +1,41 @@
-import { Reveal } from '@/components/landing/reveal'
 import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
+import { GradientAtmosphere } from '@/components/landing/gradient-atmosphere'
+import { Reveal } from '@/components/landing/reveal'
 
 export function Hero() {
   return (
-    <section className="relative min-h-screen flex flex-col items-center justify-center pt-28 pb-8 overflow-hidden">
-      {/* Background effects */}
-      <div className="absolute inset-0 lp-grid-bg" style={{
-        maskImage: 'radial-gradient(ellipse 80% 70% at 50% 30%, black 30%, transparent 100%)',
-        WebkitMaskImage: 'radial-gradient(ellipse 80% 70% at 50% 30%, black 30%, transparent 100%)',
-      }} />
-      <div className="lp-glow-subtle" style={{ width: '800px', height: '800px', left: '50%', top: '15%', transform: 'translate(-50%, -50%)' }} />
-      <div className="lp-glow" style={{ width: '400px', height: '400px', left: '50%', top: '60%', transform: 'translate(-50%, -50%)', opacity: 0.4 }} />
+    <section className="relative min-h-[92vh] flex flex-col items-center justify-center pt-36 pb-20 sm:pt-44 sm:pb-28 overflow-hidden bg-black">
+      {/* Abstract Colorful Light Field in background */}
+      <GradientAtmosphere variant="hero" intensity="medium" />
 
       <div className="relative z-10 lp-container text-center">
         {/* Eyebrow */}
-        <Reveal variant="up">
-          <div className="flex justify-center mb-6">
-            <span className="lp-eyebrow inline-flex items-center gap-2 px-4 py-2 rounded-full border border-[var(--lp-border-accent)] bg-[rgba(22,131,255,0.06)]">
-              <span className="h-1.5 w-1.5 rounded-full bg-[var(--lp-accent)] animate-pulse-soft" />
+        <Reveal variant="up" delay={0}>
+          <div className="flex justify-center mb-6 sm:mb-8">
+            <span className="lp-eyebrow">
               THE BUSINESS OPERATING SYSTEM
             </span>
           </div>
         </Reveal>
 
-        {/* Headline */}
-        <Reveal variant="up" delay={100}>
-          <h1 className="lp-headline-display mx-auto max-w-4xl">
-            Run your entire business
-            <br />
-            from <span className="lp-text-gradient">one intelligent</span> system.
+        {/* Clean Large White Headline */}
+        <Reveal variant="up" delay={120}>
+          <h1 className="lp-headline-display mx-auto max-w-4xl font-normal text-white">
+            Run your entire business from one intelligent system.
           </h1>
         </Reveal>
 
-        {/* Supporting copy */}
-        <Reveal variant="up" delay={200}>
-          <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-[var(--lp-text-secondary)]">
-            ACT OS connects operations, workflows, people, inventory and business intelligence into one unified operating system.
+        {/* Supporting Copy */}
+        <Reveal variant="up" delay={240}>
+          <p className="mx-auto mt-6 sm:mt-8 max-w-2xl text-base sm:text-lg leading-relaxed text-[#A1A1A1] font-normal">
+            ACT OS connects operations, workflows, people, inventory and intelligence into one connected business operating system.
           </p>
         </Reveal>
 
-        {/* CTAs */}
-        <Reveal variant="up" delay={300}>
-          <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3">
+        {/* Monochrome Buttons */}
+        <Reveal variant="up" delay={360}>
+          <div className="mt-10 sm:mt-12 flex flex-col sm:flex-row items-center justify-center gap-3.5">
             <Link href="/register" className="lp-btn-primary w-full sm:w-auto">
               Get started
               <ArrowRight className="h-4 w-4" />
@@ -51,13 +44,6 @@ export function Hero() {
               Explore ACT OS
             </a>
           </div>
-        </Reveal>
-
-        {/* Credibility */}
-        <Reveal variant="fade" delay={400}>
-          <p className="mt-6 text-xs text-[var(--lp-text-muted)] tracking-wide">
-            One system. Every moving part.
-          </p>
         </Reveal>
       </div>
     </section>
