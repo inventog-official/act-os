@@ -1,59 +1,68 @@
 import './landing.css'
-import { LandingNavbar } from '@/components/landing/navbar'
-import { Hero } from '@/components/landing/hero'
-import { ProductDashboard } from '@/components/landing/product-dashboard'
-import { TrustStrip } from '@/components/landing/trust-strip'
-import { ProblemSection } from '@/components/landing/problem-section'
-import { EcosystemSection } from '@/components/landing/ecosystem-section'
-import { OperationsPreview } from '@/components/landing/operations-preview'
-import { WorkflowPreview } from '@/components/landing/workflow-preview'
-import { CommandCenter } from '@/components/landing/command-center'
-import { InventoryPreview } from '@/components/landing/inventory-preview'
-import { SignatureVisual } from '@/components/landing/signature-visual'
-import { FinalCta } from '@/components/landing/final-cta'
-import { Footer } from '@/components/landing/footer'
+import { SmoothScroll } from '@/components/marketing/SmoothScroll'
+import { Navigation } from '@/components/marketing/Navigation'
+import { Hero } from '@/components/marketing/Hero'
+import { ChaosSection } from '@/components/marketing/ChaosSection'
+import { ConnectionSection } from '@/components/marketing/ConnectionSection'
+import { ProductSection } from '@/components/marketing/ProductSection'
+import { OperationsSection } from '@/components/marketing/OperationsSection'
+import { WorkflowSection } from '@/components/marketing/WorkflowSection'
+import { IntelligenceSection } from '@/components/marketing/IntelligenceSection'
+import { CommandCenter } from '@/components/marketing/CommandCenter'
+import { InventorySection } from '@/components/marketing/InventorySection'
+import { PeopleSection } from '@/components/marketing/PeopleSection'
+import { OperatingSystemSection } from '@/components/marketing/OperatingSystemSection'
+import { ControlSection } from '@/components/marketing/ControlSection'
+import { FinalCTA } from '@/components/marketing/FinalCTA'
+import { Footer } from '@/components/marketing/Footer'
 
 export default function LandingPage() {
   return (
-    <div className="landing-page min-h-screen overflow-x-clip bg-black text-white selection:bg-white selection:text-black">
-      {/* 10 — Minimalist Black Navigation */}
-      <LandingNavbar />
+    <SmoothScroll>
+      <div className="landing-page min-h-screen overflow-x-clip bg-black text-white selection:bg-white selection:text-black">
+        {/* Navigation */}
+        <Navigation />
 
-      {/* 05-06 — Hero with Atmospheric Background */}
-      <Hero />
+        {/* 00 — HERO: The Act OS Core Boot & Vision */}
+        <Hero />
 
-      {/* 07-08 — Single Beautiful Monochrome Dashboard */}
-      <ProductDashboard />
+        {/* 01 — CHAOS: Scattered Systems */}
+        <ChaosSection />
 
-      {/* 11 — Minimal Trust Strip */}
-      <TrustStrip />
+        {/* 02 — CONNECTION: One System. Every Moving Part */}
+        <ConnectionSection />
 
-      {/* 12-13 — The Problem: Convergence Animation */}
-      <ProblemSection />
+        {/* 03 — PRODUCT: See Your Business Clearly */}
+        <ProductSection />
 
-      {/* 14-15 — Product Section: Everything Connected */}
-      <EcosystemSection />
+        {/* 04 — OPERATIONS: Know What's Happening */}
+        <OperationsSection />
 
-      {/* 18 — Operations: Real-Time Observability */}
-      <OperationsPreview />
+        {/* 05 — WORKFLOWS: Turn Work into Systems */}
+        <WorkflowSection />
 
-      {/* 19 — Workflows: Turn Repetitive Work into Systems */}
-      <WorkflowPreview />
+        {/* 06 — INTELLIGENCE: Context & Next Directives */}
+        <IntelligenceSection />
 
-      {/* 16-17 — Intelligence: Ask Your Business Anything */}
-      <CommandCenter />
+        {/* 07 — COMMAND CENTER: Natural Language Terminal */}
+        <CommandCenter />
 
-      {/* 20 — Inventory: Know What You Have */}
-      <InventoryPreview />
+        {/* 08 — INVENTORY: Dimensional Supply & Stock */}
+        <InventorySection />
 
-      {/* 21 — Signature Abstract Visual Section */}
-      <SignatureVisual />
+        {/* 09 — PEOPLE: Workforce Coordination & Deliverables */}
+        <PeopleSection />
 
-      {/* 22-23 — Final Statement & Cinematic CTA */}
-      <FinalCta />
+        {/* 10 — THE OPERATING SYSTEM: The Full-Screen Core Climax */}
+        <OperatingSystemSection />
 
-      {/* Footer */}
-      <Footer />
-    </div>
+        {/* 11 — CONTROL: Deterministic Execution */}
+        <ControlSection />
+
+        {/* 12 — FINAL CTA & FOOTER */}
+        <FinalCTA />
+        <Footer />
+      </div>
+    </SmoothScroll>
   )
 }
