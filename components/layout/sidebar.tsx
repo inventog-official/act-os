@@ -1,206 +1,337 @@
 'use client'
 
+import React, { useState } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
-import { IoLogoStencil } from 'react-icons/io5'
+import { usePathname, useRouter } from 'next/navigation'
 import {
   LayoutDashboard,
-  FolderKanban,
   CheckSquare,
-  Users,
-  Box,
-  Calendar,
   Activity,
-  BarChart3,
+  FolderKanban,
+  FileText,
+  Users,
+  Calendar,
   ContactRound,
-  ChevronLeft,
-  ChevronRight,
-  Settings,
-  Plus,
+  Box,
   Wallet,
   UserRound,
-  FileText,
+  BarChart3,
+  TrendingUp,
+  Settings,
+  ChevronLeft,
+  ChevronRight,
+  ChevronDown,
+  Search,
+  Plus,
+  Building2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useUIStore } from '@/lib/store'
-import { useOrganizationStore } from '@/lib/store'
-import { Button } from '@/components/ui/button'
+import { useUIStore, useOrganizationStore } from '@/lib/store'
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Separator } from '@/components/ui/separator'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 
-const navItems = [
-  { title: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { title: 'CRM', href: '/crm', icon: ContactRound },
-  { title: 'Projects', href: '/projects', icon: FolderKanban },
-  { title: 'Finance', href: '/finance', icon: Wallet },
-  { title: 'HR', href: '/hr', icon: UserRound },
-  { title: 'Documents', href: '/documents', icon: FileText },
-  { title: 'Inventory', href: '/inventory', icon: Box },
-  { title: 'Tasks', href: '/tasks', icon: CheckSquare },
-  { title: 'Teams', href: '/teams', icon: Users },
-  { title: 'Calendar', href: '/calendar', icon: Calendar },
-  { title: 'Activity', href: '/activity', icon: Activity },
-  { title: 'Analytics', href: '/analytics', icon: BarChart3 },
+interface NavSection {
+  title: string
+  items: {
+    title: string
+    href: string
+    icon: React.ComponentType<{ className?: string }>
+  }[]
+}
+
+const SECTIONS: NavSection[] = [
+  {
+    title: 'WORKSPACE',
+    items: [
+      { title: 'Overview', href: '/dashboard', icon: LayoutDashboard },
+      { title: 'Tasks & Inbox', href: '/tasks', icon: CheckSquare },
+      { title: 'Activity Stream', href: '/activity', icon: Activity },
+    ],
+  },
+  {
+    title: 'WORK',
+    items: [
+      { title: 'Projects', href: '/projects', icon: FolderKanban },
+      { title: 'Documents', href: '/documents', icon: FileText },
+      { title: 'Teams', href: '/teams', icon: Users },
+      { title: 'Calendar', href: '/calendar', icon: Calendar },
+    ],
+  },
+  {
+    title: 'BUSINESS',
+    items: [
+      { title: 'CRM & Pipeline', href: '/crm', icon: ContactRound },
+      { title: 'Inventory', href: '/inventory', icon: Box },
+      { title: 'Finance & Ledger', href: '/finance', icon: Wallet },
+      { title: 'People & HR', href: '/hr', icon: UserRound },
+    ],
+  },
+  {
+    title: 'INTELLIGENCE',
+    items: [
+      { title: 'Analytics', href: '/analytics', icon: BarChart3 },
+      { title: 'Enterprise Reports', href: '/finance/reports', icon: TrendingUp },
+    ],
+  },
 ]
 
 export function Sidebar({ orgSlug }: { orgSlug: string }) {
   const pathname = usePathname()
-  const { sidebarOpen, toggleSidebar } = useUIStore()
-  const currentOrganization = useOrganizationStore((s) => s.currentOrganization)
+  const router = useRouter()
+  const { sidebarOpen, toggleSidebar, setCommandPaletteOpen } = useUIStore()
+  const { currentOrganization, organizations, setCurrentOrganization } = useOrganizationStore()
+  const [workspaceMenuOpen, setWorkspaceMenuOpen] = useState(false)
 
   const isActive = (href: string) => pathname.includes(href)
 
   return (
-    <TooltipProvider delayDuration={0}>
+    <TooltipProvider delayDuration={150}>
       <aside
         className={cn(
-          'fixed left-0 top-0 z-40 flex h-screen flex-col border-r border-zinc-200 bg-white transition-all duration-300 dark:border-zinc-800 dark:bg-zinc-950',
-          sidebarOpen ? 'w-64' : 'w-16'
+          'fixed left-0 top-0 z-40 flex h-screen flex-col border-r border-white/[0.08] bg-[#050505] text-white transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] selection:bg-white selection:text-black',
+          sidebarOpen ? 'w-[260px]' : 'w-[72px]'
         )}
       >
-        <div className={cn(
-          'flex h-16 items-center border-b border-zinc-200 px-4 dark:border-zinc-800',
-          sidebarOpen ? 'justify-between' : 'justify-center'
-        )}>
-          {sidebarOpen ? (
-            <>
-              <Link href={`/${orgSlug}/dashboard`} className="flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-900 text-white dark:bg-zinc-50 dark:text-zinc-900">
-                  <IoLogoStencil className="h-5 w-5" />
+        {/* Top Header: Logo + Workspace Switcher */}
+        <div className="flex h-16 items-center px-4 border-b border-white/[0.08] justify-between">
+          <DropdownMenu open={workspaceMenuOpen} onOpenChange={setWorkspaceMenuOpen}>
+            <DropdownMenuTrigger asChild>
+              <button
+                className={cn(
+                  'flex items-center gap-2.5 rounded-lg p-1.5 hover:bg-white/[0.04] transition-colors outline-none text-left w-full overflow-hidden group',
+                  !sidebarOpen && 'justify-center p-1'
+                )}
+              >
+                {/* Brand Geometric Emblem */}
+                <div className="w-8 h-8 rounded-[6px] bg-white flex items-center justify-center shrink-0">
+                  <div className="w-2.5 h-2.5 rounded-[1px] bg-black" />
                 </div>
-                <div className="flex flex-col">
-                  <span className="text-sm font-semibold">ACT OS</span>
-                  {currentOrganization && (
-                    <span className="text-xs text-zinc-500 truncate max-w-[140px]">
-                      {currentOrganization.name}
+
+                {sidebarOpen && (
+                  <div className="flex-1 min-w-0 flex flex-col leading-tight">
+                    <span className="font-mono text-xs font-semibold text-white tracking-wider truncate">
+                      {currentOrganization?.name || 'ACT OS'}
                     </span>
-                  )}
+                    <span className="font-mono text-[10px] text-neutral-500 truncate">
+                      {orgSlug}
+                    </span>
+                  </div>
+                )}
+
+                {sidebarOpen && (
+                  <ChevronDown className="h-3.5 w-3.5 text-neutral-500 group-hover:text-neutral-300 transition-colors shrink-0" />
+                )}
+              </button>
+            </DropdownMenuTrigger>
+
+            <DropdownMenuContent
+              align="start"
+              className="w-56 bg-[#0A0A0A] border border-white/[0.12] text-white rounded-xl shadow-2xl p-1.5 font-mono text-xs"
+            >
+              <DropdownMenuLabel className="text-[10px] text-neutral-500 uppercase tracking-widest px-2 py-1.5">
+                ACTIVE WORKSPACE
+              </DropdownMenuLabel>
+              <DropdownMenuItem
+                className="px-2 py-2 rounded-lg bg-white/[0.06] text-white flex items-center justify-between"
+              >
+                <div className="flex items-center gap-2 truncate">
+                  <Building2 className="h-3.5 w-3.5 text-white/70" />
+                  <span className="font-semibold truncate">{currentOrganization?.name || orgSlug}</span>
                 </div>
-              </Link>
-              <Button variant="ghost" size="icon-sm" onClick={toggleSidebar}>
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-            </>
-          ) : (
-            <>
-              <Link href={`/${orgSlug}/dashboard`}>
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-900 text-white dark:bg-zinc-50 dark:text-zinc-900">
-                  <IoLogoStencil className="h-5 w-5" />
-                </div>
-              </Link>
-              <Button variant="ghost" size="icon-sm" onClick={toggleSidebar} className="absolute -right-3 top-5">
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </>
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+              </DropdownMenuItem>
+
+              {organizations && organizations.length > 1 && (
+                <>
+                  <DropdownMenuSeparator className="bg-white/[0.08] my-1" />
+                  <DropdownMenuLabel className="text-[10px] text-neutral-500 uppercase tracking-widest px-2 py-1">
+                    SWITCH WORKSPACE
+                  </DropdownMenuLabel>
+                  {organizations
+                    .filter((org) => org.slug !== orgSlug)
+                    .map((org) => (
+                      <DropdownMenuItem
+                        key={org.id}
+                        onClick={() => {
+                          setCurrentOrganization(org)
+                          router.push(`/${org.slug}/dashboard`)
+                        }}
+                        className="px-2 py-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-white/[0.04] transition-colors flex items-center gap-2"
+                      >
+                        <Building2 className="h-3.5 w-3.5 text-neutral-500" />
+                        <span className="truncate">{org.name}</span>
+                      </DropdownMenuItem>
+                    ))}
+                </>
+              )}
+
+              <DropdownMenuSeparator className="bg-white/[0.08] my-1" />
+              <DropdownMenuItem
+                onClick={() => router.push(`/${orgSlug}/organization/create`)}
+                className="px-2 py-1.5 rounded-lg text-neutral-300 hover:text-white hover:bg-white/[0.04] cursor-pointer flex items-center gap-2"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                <span>Create Workspace</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => router.push(`/${orgSlug}/settings/workspace`)}
+                className="px-2 py-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-white/[0.04] cursor-pointer flex items-center gap-2"
+              >
+                <Settings className="h-3.5 w-3.5" />
+                <span>Workspace Settings</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Toggle Sidebar Collapse */}
+          {sidebarOpen && (
+            <button
+              onClick={toggleSidebar}
+              className="p-1.5 rounded-lg text-neutral-500 hover:text-white hover:bg-white/[0.05] transition-colors"
+              title="Collapse Sidebar"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
           )}
         </div>
 
-        <ScrollArea className="flex-1 px-2 py-4">
-          <nav className="flex flex-col gap-1">
-            {navItems.map((item) => {
-              const Icon = item.icon
-              const href = `/${orgSlug}${item.href}`
-              const active = isActive(item.href)
-
-              if (!sidebarOpen) {
-                return (
-                  <Tooltip key={item.title}>
-                    <TooltipTrigger asChild>
-                      <Link
-                        href={href}
-                        className={cn(
-                          'flex h-10 w-10 items-center justify-center rounded-lg transition-colors',
-                          active
-                            ? 'bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-50'
-                            : 'text-zinc-500 hover:bg-zinc-50 hover:text-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800/50 dark:hover:text-zinc-200'
-                        )}
-                      >
-                        <Icon className="h-5 w-5" />
-                      </Link>
-                    </TooltipTrigger>
-                    <TooltipContent side="right" className="ml-2">
-                      {item.title}
-                    </TooltipContent>
-                  </Tooltip>
-                )
-              }
-
-              return (
-                <Link
-                  key={item.title}
-                  href={href}
-                  className={cn(
-                    'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
-                    active
-                      ? 'bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-50'
-                      : 'text-zinc-500 hover:bg-zinc-50 hover:text-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800/50 dark:hover:text-zinc-200'
-                  )}
-                >
-                  <Icon className="h-5 w-5 shrink-0" />
-                  {item.title}
-                </Link>
-              )
-            })}
-          </nav>
-
-          <Separator className="my-4" />
-
-          {sidebarOpen && (
-            <div className="px-3">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-semibold uppercase tracking-wider text-zinc-400">Workspaces</span>
-                <Button variant="ghost" size="icon-sm">
-                  <Plus className="h-3 w-3" />
-                </Button>
-              </div>
-              <div className="space-y-1">
-                <button className="w-full flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-zinc-500 hover:bg-zinc-50 hover:text-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800/50 dark:hover:text-zinc-200 transition-colors">
-                  <div className="h-2 w-2 rounded-full bg-emerald-500" />
-                  General
-                </button>
-                <button className="w-full flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-zinc-500 hover:bg-zinc-50 hover:text-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800/50 dark:hover:text-zinc-200 transition-colors">
-                  <div className="h-2 w-2 rounded-full bg-blue-500" />
-                  Design
-                </button>
-                <button className="w-full flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-zinc-500 hover:bg-zinc-50 hover:text-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800/50 dark:hover:text-zinc-200 transition-colors">
-                  <div className="h-2 w-2 rounded-full bg-amber-500" />
-                  Engineering
-                </button>
-              </div>
-            </div>
-          )}
-        </ScrollArea>
-
-        <div className={cn(
-          'border-t border-zinc-200 p-3 dark:border-zinc-800',
-          !sidebarOpen && 'flex justify-center'
-        )}>
+        {/* Command Center Search Trigger */}
+        <div className="px-3 pt-3 pb-2">
           {sidebarOpen ? (
-            <Link
-              href={`/${orgSlug}/settings/profile`}
-              className={cn(
-                'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
-                pathname.includes('/settings')
-                  ? 'bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-50'
-                  : 'text-zinc-500 hover:bg-zinc-50 hover:text-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800/50 dark:hover:text-zinc-200'
-              )}
+            <button
+              onClick={() => setCommandPaletteOpen(true)}
+              className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-[#0D0D0D] border border-white/[0.08] hover:border-white/20 text-neutral-400 hover:text-white transition-all font-mono text-xs group"
             >
-              <Settings className="h-5 w-5 shrink-0" />
-              Settings
-            </Link>
+              <span className="flex items-center gap-2">
+                <Search className="h-3.5 w-3.5 text-neutral-500 group-hover:text-white transition-colors" />
+                <span>Search</span>
+              </span>
+              <kbd className="px-1.5 py-0.5 rounded bg-white/[0.06] border border-white/10 text-[10px] text-neutral-400">
+                ⌘K
+              </kbd>
+            </button>
           ) : (
             <Tooltip>
               <TooltipTrigger asChild>
-                <Link
-                  href={`/${orgSlug}/settings/profile`}
-                  className="flex h-10 w-10 items-center justify-center rounded-lg text-zinc-500 hover:bg-zinc-50 hover:text-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800/50 dark:hover:text-zinc-200 transition-colors"
+                <button
+                  onClick={() => setCommandPaletteOpen(true)}
+                  className="w-full h-10 flex items-center justify-center rounded-lg bg-[#0D0D0D] border border-white/[0.08] hover:border-white/20 text-neutral-400 hover:text-white transition-all"
                 >
-                  <Settings className="h-5 w-5" />
-                </Link>
+                  <Search className="h-4 w-4" />
+                </button>
               </TooltipTrigger>
-              <TooltipContent side="right" className="ml-2">
-                Settings
+              <TooltipContent side="right" className="bg-black border border-white/20 text-white font-mono text-xs">
+                Command Center (⌘K)
+              </TooltipContent>
+            </Tooltip>
+          )}
+        </div>
+
+        {/* Navigation Sections */}
+        <ScrollArea className="flex-1 px-3 py-2">
+          <div className="space-y-6">
+            {SECTIONS.map((section) => (
+              <div key={section.title} className="space-y-1">
+                {sidebarOpen && (
+                  <div className="px-3 py-1 font-mono text-[10px] uppercase tracking-widest text-neutral-500">
+                    {section.title}
+                  </div>
+                )}
+
+                <div className="space-y-0.5">
+                  {section.items.map((item) => {
+                    const href = `/${orgSlug}${item.href}`
+                    const active = isActive(item.href)
+                    const Icon = item.icon
+
+                    if (!sidebarOpen) {
+                      return (
+                        <Tooltip key={item.title}>
+                          <TooltipTrigger asChild>
+                            <Link
+                              href={href}
+                              className={cn(
+                                'flex h-10 w-full items-center justify-center rounded-lg transition-all relative',
+                                active
+                                  ? 'bg-[#151515] text-white'
+                                  : 'text-neutral-400 hover:text-white hover:bg-[#0F0F0F]'
+                              )}
+                            >
+                              {active && (
+                                <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-5 bg-white rounded-r" />
+                              )}
+                              <Icon className="h-4 w-4" />
+                            </Link>
+                          </TooltipTrigger>
+                          <TooltipContent side="right" className="bg-black border border-white/20 text-white font-mono text-xs ml-2">
+                            {item.title}
+                          </TooltipContent>
+                        </Tooltip>
+                      )
+                    }
+
+                    return (
+                      <Link
+                        key={item.title}
+                        href={href}
+                        className={cn(
+                          'flex items-center gap-3 rounded-lg px-3 py-2 text-xs font-mono transition-all duration-150 relative group',
+                          active
+                            ? 'bg-[#151515] text-white font-medium'
+                            : 'text-neutral-400 hover:text-white hover:bg-[#0F0F0F]'
+                        )}
+                      >
+                        {active && (
+                          <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-4 bg-white rounded-r" />
+                        )}
+                        <Icon className={cn('h-4 w-4 shrink-0 transition-colors', active ? 'text-white' : 'text-neutral-400 group-hover:text-white')} />
+                        <span className="tracking-wide">{item.title}</span>
+                      </Link>
+                    )
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        </ScrollArea>
+
+        {/* Bottom Profile & Settings Section */}
+        <div className="p-3 border-t border-white/[0.08] space-y-1">
+          {sidebarOpen ? (
+            <div className="flex items-center justify-between">
+              <Link
+                href={`/${orgSlug}/settings/profile`}
+                className={cn(
+                  'flex items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-mono transition-colors flex-1',
+                  pathname.includes('/settings')
+                    ? 'bg-[#151515] text-white'
+                    : 'text-neutral-400 hover:text-white hover:bg-[#0F0F0F]'
+                )}
+              >
+                <Settings className="h-4 w-4 shrink-0" />
+                <span>Preferences &amp; Settings</span>
+              </Link>
+            </div>
+          ) : (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={toggleSidebar}
+                  className="w-full h-10 flex items-center justify-center rounded-lg text-neutral-500 hover:text-white hover:bg-[#0F0F0F] transition-colors"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="right" className="bg-black border border-white/20 text-white font-mono text-xs">
+                Expand Sidebar
               </TooltipContent>
             </Tooltip>
           )}

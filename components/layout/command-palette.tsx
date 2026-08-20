@@ -1,35 +1,50 @@
 'use client'
 
-import { useEffect, useState, useCallback, useRef } from 'react'
+import React, { useEffect, useState, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { Search, LayoutDashboard, FolderKanban, CheckSquare, Users, Calendar, User, Settings, File, Building2, UserPlus, Target, Loader2 } from 'lucide-react'
-import { useUIStore } from '@/lib/store'
-import { useOrganizationStore } from '@/lib/store'
+import {
+  Search,
+  LayoutDashboard,
+  CheckSquare,
+  Box,
+  ContactRound,
+  Wallet,
+  BarChart3,
+  TrendingUp,
+  FolderKanban,
+  Settings,
+  Key,
+  Building2,
+  UserPlus,
+  Target,
+  FileText,
+  Loader2,
+} from 'lucide-react'
+import { useUIStore, useOrganizationStore } from '@/lib/store'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
-import { useMediaQuery } from '@/hooks/use-media-query'
 
 interface SearchResult {
   id: string
   label: string
   description: string
   href: string
-  icon: any
-  type: 'lead' | 'company' | 'contact' | 'deal' | 'project' | 'task'
+  category: string
+  icon: React.ComponentType<{ className?: string }>
 }
 
-const commands = [
-  { id: '1', title: 'Go to Dashboard', href: '/dashboard', icon: LayoutDashboard, category: 'Navigation' },
-  { id: '2', title: 'Go to Projects', href: '/projects', icon: FolderKanban, category: 'Navigation' },
-  { id: '3', title: 'Go to Tasks', href: '/tasks', icon: CheckSquare, category: 'Navigation' },
-  { id: '4', title: 'Go to Teams', href: '/teams', icon: Users, category: 'Navigation' },
-  { id: '5', title: 'Go to Calendar', href: '/calendar', icon: Calendar, category: 'Navigation' },
-  { id: '6', title: 'Profile Settings', href: '/settings/profile', icon: User, category: 'Settings' },
-  { id: '7', title: 'Workspace Settings', href: '/settings/workspace', icon: Settings, category: 'Settings' },
-  { id: '8', title: 'New Project', href: '/projects/new', icon: File, category: 'Actions' },
+const DEFAULT_COMMANDS = [
+  { id: 'c1', title: 'Open Overview Dashboard', href: '/dashboard', category: 'Navigation', icon: LayoutDashboard, shortcut: 'G D' },
+  { id: 'c2', title: 'View Active Tasks & Inbox', href: '/tasks', category: 'Navigation', icon: CheckSquare, shortcut: 'G T' },
+  { id: 'c3', title: 'Open Inventory Ledger', href: '/inventory', category: 'Navigation', icon: Box, shortcut: 'G I' },
+  { id: 'c4', title: 'Open CRM & Deals', href: '/crm', category: 'Navigation', icon: ContactRound, shortcut: 'G C' },
+  { id: 'c5', title: 'Open Finance & Payments', href: '/finance', category: 'Navigation', icon: Wallet, shortcut: 'G F' },
+  { id: 'c6', title: 'View Enterprise Analytics', href: '/analytics', category: 'Intelligence', icon: BarChart3, shortcut: 'G A' },
+  { id: 'c7', title: 'Generate Financial Report', href: '/finance/reports', category: 'Intelligence', icon: TrendingUp, shortcut: 'G R' },
+  { id: 'c8', title: 'Create New Project', href: '/projects', category: 'Actions', icon: FolderKanban, shortcut: 'N P' },
+  { id: 'c9', title: 'Workspace Settings', href: '/settings/workspace', category: 'Settings', icon: Settings, shortcut: 'S W' },
+  { id: 'c10', title: 'Security & API Keys', href: '/settings/security', category: 'Settings', icon: Key, shortcut: 'S K' },
 ]
-
-const typeIcons: Record<string, any> = { lead: UserPlus, company: Building2, contact: Users, deal: Target, project: FolderKanban, task: CheckSquare }
 
 export function CommandPalette({ orgSlug }: { orgSlug: string }) {
   const router = useRouter()
@@ -41,150 +56,306 @@ export function CommandPalette({ orgSlug }: { orgSlug: string }) {
   const [searchResults, setSearchResults] = useState<SearchResult[]>([])
   const [isSearching, setIsSearching] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
-  const isMobile = useMediaQuery('(max-width: 768px)')
 
   const filteredCommands = query
-    ? commands.filter(c => c.title.toLowerCase().includes(query.toLowerCase()))
-    : commands
+    ? DEFAULT_COMMANDS.filter((c) => c.title.toLowerCase().includes(query.toLowerCase()))
+    : DEFAULT_COMMANDS
 
-  const doSearch = useCallback(async (q: string) => {
-    if (!currentOrganization || q.length < 2) { setSearchResults([]); return }
-    setIsSearching(true)
-    setSelectedIndex(0)
-    try {
-      const term = `%${q}%`
-      const orgId = currentOrganization.id
+  const doSearch = useCallback(
+    async (q: string) => {
+      if (!currentOrganization || q.length < 2) {
+        setSearchResults([])
+        return
+      }
+      setIsSearching(true)
+      setSelectedIndex(0)
+      try {
+        const term = `%${q}%`
+        const orgId = currentOrganization.id
 
-      const [leadsRes, companiesRes, contactsRes, dealsRes, projectsRes, tasksRes] = await Promise.all([
-        supabase.from('crm_leads').select('id, first_name, last_name, company_name').eq('organization_id', orgId).is('deleted_at', null).or(`first_name.ilike.${term},last_name.ilike.${term}`).limit(3),
-        supabase.from('crm_companies').select('id, name').eq('organization_id', orgId).is('deleted_at', null).or(`name.ilike.${term}`).limit(3),
-        supabase.from('crm_contacts').select('id, first_name, last_name').eq('organization_id', orgId).is('deleted_at', null).or(`first_name.ilike.${term},last_name.ilike.${term}`).limit(3),
-        supabase.from('crm_deals').select('id, name').eq('organization_id', orgId).is('deleted_at', null).or(`name.ilike.${term}`).limit(3),
-        supabase.from('projects').select('id, name, description').eq('organization_id', orgId).is('deleted_at', null).or(`name.ilike.${term},code.ilike.${term},description.ilike.${term}`).limit(3),
-        supabase.from('tasks').select('id, title, description, project_id').eq('organization_id', orgId).is('deleted_at', null).or(`title.ilike.${term},description.ilike.${term}`).limit(3),
-      ])
+        const [leadsRes, companiesRes, dealsRes, projectsRes, tasksRes] = await Promise.all([
+          supabase
+            .from('crm_leads')
+            .select('id, first_name, last_name, company_name')
+            .eq('organization_id', orgId)
+            .is('deleted_at', null)
+            .or(`first_name.ilike.${term},last_name.ilike.${term}`)
+            .limit(3),
+          supabase
+            .from('crm_companies')
+            .select('id, name')
+            .eq('organization_id', orgId)
+            .is('deleted_at', null)
+            .or(`name.ilike.${term}`)
+            .limit(3),
+          supabase
+            .from('crm_deals')
+            .select('id, name')
+            .eq('organization_id', orgId)
+            .is('deleted_at', null)
+            .or(`name.ilike.${term}`)
+            .limit(3),
+          supabase
+            .from('projects')
+            .select('id, name, description')
+            .eq('organization_id', orgId)
+            .is('deleted_at', null)
+            .or(`name.ilike.${term},code.ilike.${term}`)
+            .limit(3),
+          supabase
+            .from('tasks')
+            .select('id, title, description, project_id')
+            .eq('organization_id', orgId)
+            .is('deleted_at', null)
+            .or(`title.ilike.${term}`)
+            .limit(3),
+        ])
 
-      const results: SearchResult[] = []
-      ;(leadsRes.data || []).forEach(l => results.push({ id: l.id, label: `${l.first_name} ${l.last_name}`, description: l.company_name || 'Lead', href: `/${currentOrganization.slug}/crm/leads`, icon: typeIcons.lead, type: 'lead' }))
-      ;(companiesRes.data || []).forEach(c => results.push({ id: c.id, label: c.name, description: 'Company', href: `/${currentOrganization.slug}/crm/companies`, icon: typeIcons.company, type: 'company' }))
-      ;(contactsRes.data || []).forEach(c => results.push({ id: c.id, label: `${c.first_name} ${c.last_name}`, description: 'Contact', href: `/${currentOrganization.slug}/crm/contacts`, icon: typeIcons.contact, type: 'contact' }))
-      ;(dealsRes.data || []).forEach(d => results.push({ id: d.id, label: d.name, description: 'Deal', href: `/${currentOrganization.slug}/crm/pipeline`, icon: typeIcons.deal, type: 'deal' }))
-      ;(projectsRes.data || []).forEach(p => results.push({ id: p.id, label: p.name, description: p.description || 'Project', href: `/${currentOrganization.slug}/projects/${p.id}`, icon: typeIcons.project, type: 'project' }))
-      ;(tasksRes.data || []).forEach(t => results.push({ id: t.id, label: t.title, description: t.description || 'Task', href: `/${currentOrganization.slug}/projects/${t.project_id}/tasks/${t.id}`, icon: typeIcons.task, type: 'task' }))
+        const results: SearchResult[] = []
+        ;(leadsRes.data || []).forEach((l) =>
+          results.push({
+            id: l.id,
+            label: `${l.first_name} ${l.last_name}`,
+            description: l.company_name || 'Lead Record',
+            href: `/${currentOrganization.slug}/crm/leads`,
+            category: 'CRM',
+            icon: UserPlus,
+          })
+        )
+        ;(companiesRes.data || []).forEach((c) =>
+          results.push({
+            id: c.id,
+            label: c.name,
+            description: 'Company Account',
+            href: `/${currentOrganization.slug}/crm/companies`,
+            category: 'CRM',
+            icon: Building2,
+          })
+        )
+        ;(dealsRes.data || []).forEach((d) =>
+          results.push({
+            id: d.id,
+            label: d.name,
+            description: 'Pipeline Opportunity',
+            href: `/${currentOrganization.slug}/crm/pipeline`,
+            category: 'CRM',
+            icon: Target,
+          })
+        )
+        ;(projectsRes.data || []).forEach((p) =>
+          results.push({
+            id: p.id,
+            label: p.name,
+            description: p.description || 'Active Project',
+            href: `/${currentOrganization.slug}/projects/${p.id}`,
+            category: 'Projects',
+            icon: FolderKanban,
+          })
+        )
+        ;(tasksRes.data || []).forEach((t) =>
+          results.push({
+            id: t.id,
+            label: t.title,
+            description: 'Assigned Task',
+            href: `/${currentOrganization.slug}/projects/${t.project_id}/tasks/${t.id}`,
+            category: 'Tasks',
+            icon: CheckSquare,
+          })
+        )
 
-      setSearchResults(results)
-    } catch { setSearchResults([]) }
-    finally { setIsSearching(false) }
-  }, [currentOrganization, supabase])
+        setSearchResults(results)
+      } catch {
+        setSearchResults([])
+      } finally {
+        setIsSearching(false)
+      }
+    },
+    [currentOrganization, supabase]
+  )
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
-      if (e.key === 'k' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); setCommandPaletteOpen(!commandPaletteOpen) }
-      if (e.key === 'Escape') { setCommandPaletteOpen(false) }
+      if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault()
+        setCommandPaletteOpen(!commandPaletteOpen)
+      }
+      if (e.key === 'Escape') {
+        setCommandPaletteOpen(false)
+      }
     }
     document.addEventListener('keydown', down)
     return () => document.removeEventListener('keydown', down)
   }, [commandPaletteOpen, setCommandPaletteOpen])
 
   useEffect(() => {
-    if (commandPaletteOpen) { setQuery(''); setSelectedIndex(0); setSearchResults([]); setTimeout(() => inputRef.current?.focus(), 50) }
+    if (commandPaletteOpen) {
+      setQuery('')
+      setSelectedIndex(0)
+      setSearchResults([])
+      setTimeout(() => inputRef.current?.focus(), 50)
+    }
   }, [commandPaletteOpen])
 
   useEffect(() => {
-    const timer = setTimeout(() => doSearch(query), 200)
+    const timer = setTimeout(() => doSearch(query), 150)
     return () => clearTimeout(timer)
   }, [query, doSearch])
 
-  const executeCommand = useCallback((href: string) => {
-    setCommandPaletteOpen(false)
-    router.push(`/${orgSlug}${href}`)
-  }, [orgSlug, router, setCommandPaletteOpen])
-
   const handleSelect = (href: string) => {
     setCommandPaletteOpen(false)
-    router.push(href)
+    if (href.startsWith('/')) {
+      if (!href.startsWith(`/${orgSlug}`)) {
+        router.push(`/${orgSlug}${href}`)
+      } else {
+        router.push(href)
+      }
+    }
   }
 
-  const allItems: { href: string; label: string; icon?: any; category?: string; isCrm?: boolean }[] = [
-    ...filteredCommands.map(c => ({ href: c.href, label: c.title, icon: c.icon, category: c.category })),
-    ...searchResults.map(r => ({ href: r.href, label: r.label, icon: r.icon, category: r.type, isCrm: true })),
+  const allItems: { href: string; label: string; category: string; shortcut?: string; description?: string; icon: React.ComponentType<{ className?: string }> }[] = [
+    ...filteredCommands.map((c) => ({
+      href: c.href,
+      label: c.title,
+      category: c.category,
+      shortcut: c.shortcut,
+      icon: c.icon,
+    })),
+    ...searchResults.map((r) => ({
+      href: r.href,
+      label: r.label,
+      category: r.category,
+      description: r.description,
+      icon: r.icon,
+    })),
   ]
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     const total = allItems.length
-    if (e.key === 'ArrowDown') { e.preventDefault(); setSelectedIndex(i => Math.min(i + 1, total - 1)) }
-    if (e.key === 'ArrowUp') { e.preventDefault(); setSelectedIndex(i => Math.max(i - 1, 0)) }
-    if (e.key === 'Enter' && allItems[selectedIndex]) { e.preventDefault(); handleSelect(allItems[selectedIndex].href) }
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      setSelectedIndex((i) => Math.min(i + 1, total - 1))
+    }
+    if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      setSelectedIndex((i) => Math.max(i - 1, 0))
+    }
+    if (e.key === 'Enter' && allItems[selectedIndex]) {
+      e.preventDefault()
+      handleSelect(allItems[selectedIndex].href)
+    }
   }
 
   if (!commandPaletteOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50">
-      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setCommandPaletteOpen(false)} />
-      <div className={cn('fixed left-1/2 top-[15%] -translate-x-1/2 w-full max-w-xl', isMobile && 'top-0 max-w-full h-full')}>
-        <div className={cn('overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-2xl dark:border-zinc-800 dark:bg-zinc-950', isMobile && 'rounded-none h-full')}>
-          <div className="flex items-center border-b border-zinc-200 px-4 dark:border-zinc-800">
-            <Search className="h-4 w-4 text-zinc-400 shrink-0" />
-            <input
-              ref={inputRef}
-              type="text"
-              placeholder="Search commands or CRM data..."
-              value={query}
-              onChange={e => { setQuery(e.target.value); setSelectedIndex(0) }}
-              onKeyDown={handleKeyDown}
-              className="flex-1 bg-transparent px-3 py-4 text-sm outline-none placeholder:text-zinc-400"
-            />
-            {isSearching && <Loader2 className="h-4 w-4 animate-spin text-zinc-400 mr-2" />}
-            <kbd className="hidden sm:inline-flex items-center gap-1 rounded border border-zinc-200 px-2 py-0.5 text-xs text-zinc-400 dark:border-zinc-700">ESC</kbd>
-          </div>
+    <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 sm:pt-28 px-4">
+      {/* Backdrop */}
+      <div
+        className="fixed inset-0 bg-black/75 backdrop-blur-md transition-opacity"
+        onClick={() => setCommandPaletteOpen(false)}
+      />
 
-          <div className="max-h-80 overflow-y-auto p-2">
-            {allItems.length === 0 && (
-              <div className="px-3 py-8 text-center text-sm text-zinc-500">
-                {query.length >= 2 ? 'No results found' : 'Type to search commands or CRM data'}
-              </div>
-            )}
+      {/* Centered Command Panel */}
+      <div className="relative w-full max-w-xl bg-[#0A0A0A] border border-white/[0.15] rounded-2xl shadow-2xl overflow-hidden font-mono text-white animate-fade-in z-10">
+        {/* Search Bar Header */}
+        <div className="flex items-center gap-3 px-4 py-3.5 border-b border-white/[0.08] bg-white/[0.02]">
+          <Search className="h-4 w-4 text-neutral-400 shrink-0" />
+          <input
+            ref={inputRef}
+            type="text"
+            placeholder="What do you want to do?"
+            value={query}
+            onChange={(e) => {
+              setQuery(e.target.value)
+              setSelectedIndex(0)
+            }}
+            onKeyDown={handleKeyDown}
+            className="flex-1 bg-transparent text-sm text-white placeholder:text-neutral-500 outline-none"
+          />
+          {isSearching && (
+            <Loader2 className="h-3.5 w-3.5 animate-spin text-neutral-400 mr-1" />
+          )}
+          <kbd className="px-2 py-0.5 rounded bg-white/[0.08] border border-white/10 text-[10px] text-neutral-400">
+            ESC
+          </kbd>
+        </div>
 
-            {(() => {
-              const categories = new Map<string, typeof allItems>()
-              allItems.forEach(item => {
-                const key = item.isCrm ? (item.category || 'CRM') : (item.category || 'General')
-                const group = categories.get(key) || []
+        {/* Results List */}
+        <div className="max-h-80 overflow-y-auto p-2 space-y-3">
+          {allItems.length === 0 ? (
+            <div className="py-8 text-center text-xs text-neutral-500">
+              No matching commands or enterprise records found.
+            </div>
+          ) : (
+            (() => {
+              const groups = new Map<string, typeof allItems>()
+              allItems.forEach((item) => {
+                const group = groups.get(item.category) || []
                 group.push(item)
-                categories.set(key, group)
+                groups.set(item.category, group)
               })
 
               let globalIdx = 0
-              return Array.from(categories.entries()).map(([category, items]) => (
-                <div key={category}>
-                  <div className="px-3 py-2 text-xs font-semibold uppercase tracking-wider text-zinc-400">{category}</div>
+              return Array.from(groups.entries()).map(([category, items]) => (
+                <div key={category} className="space-y-1">
+                  <div className="px-3 py-1 text-[10px] uppercase tracking-widest text-neutral-500">
+                    {category}
+                  </div>
                   {items.map((item) => {
                     const idx = globalIdx++
+                    const isSelected = selectedIndex === idx
                     const Icon = item.icon
+
                     return (
                       <button
-                        key={`${category}-${item.label}`}
+                        key={`${category}-${item.label}-${idx}`}
                         onClick={() => handleSelect(item.href)}
                         className={cn(
-                          'flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors',
-                          selectedIndex === idx ? 'bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-50' : 'text-zinc-600 hover:bg-zinc-50 dark:text-zinc-400 dark:hover:bg-zinc-800/50'
+                          'w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs transition-colors text-left',
+                          isSelected
+                            ? 'bg-white text-black font-semibold'
+                            : 'text-neutral-300 hover:bg-white/[0.05] hover:text-white'
                         )}
                       >
-                        {Icon && (
-                          <div className={cn('flex h-8 w-8 items-center justify-center rounded-lg', item.isCrm ? 'bg-zinc-100 dark:bg-zinc-800' : '')}>
-                            <Icon className="h-4 w-4" />
-                          </div>
+                        <div className="flex items-center gap-2.5 truncate">
+                          <Icon className={cn('h-3.5 w-3.5 shrink-0', isSelected ? 'text-black' : 'text-neutral-400')} />
+                          <span className="truncate">{item.label}</span>
+                          {item.description && (
+                            <span
+                              className={cn(
+                                'text-[10px] font-normal truncate',
+                                isSelected ? 'text-black/60' : 'text-neutral-500'
+                              )}
+                            >
+                              — {item.description}
+                            </span>
+                          )}
+                        </div>
+
+                        {item.shortcut && (
+                          <span
+                            className={cn(
+                              'text-[10px] tracking-wider ml-2',
+                              isSelected ? 'text-black/70' : 'text-neutral-500'
+                            )}
+                          >
+                            {item.shortcut}
+                          </span>
                         )}
-                        <span>{item.label}</span>
-                        {item.isCrm && <span className="ml-auto text-[10px] uppercase text-zinc-400 font-medium">{category}</span>}
                       </button>
                     )
                   })}
                 </div>
               ))
-            })()}
-          </div>
+            })()
+          )}
+        </div>
+
+        {/* Bottom Hint */}
+        <div className="px-4 py-2.5 border-t border-white/[0.08] bg-white/[0.01] flex items-center justify-between text-[10px] text-neutral-500">
+          <span>Navigate: ↑ ↓</span>
+          <span>Select: ↵ ENTER</span>
+          <span>Close: ESC</span>
         </div>
       </div>
     </div>
