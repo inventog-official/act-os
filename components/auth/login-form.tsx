@@ -123,29 +123,29 @@ export function LoginForm() {
   }
 
   return (
-    <div className="space-y-8 animate-fade-in">
-      {/* Header */}
-      <div>
-        <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-neutral-500 mb-2">
-          ACT OS // AUTHENTICATION
+    <div className="space-y-6 font-sans">
+      {/* Apple Header */}
+      <div className="text-center sm:text-left">
+        <div className="w-10 h-10 rounded-2xl bg-white/[0.08] border border-white/10 flex items-center justify-center mb-3 shadow-[0_4px_12px_rgba(0,0,0,0.3)]">
+          <Lock className="w-5 h-5 text-white stroke-[2]" />
         </div>
-        <h1 className="text-3xl font-light text-white tracking-tight">
-          Welcome back
+        <h1 className="text-2xl font-semibold text-white tracking-tight">
+          Sign In
         </h1>
-        <p className="text-sm text-neutral-400 font-light mt-1.5 leading-relaxed">
-          Sign in to continue to your workspace environment.
+        <p className="text-xs text-neutral-400 font-normal mt-1 leading-relaxed">
+          Enter your credentials to access your workspace.
         </p>
       </div>
 
       {/* Inline Error Callout */}
       {authError && (
-        <div className="p-3.5 rounded-[10px] bg-red-950/40 border border-red-500/30 text-xs font-mono text-red-300">
+        <div className="p-3 rounded-xl bg-red-950/40 border border-red-500/30 text-xs text-red-300 font-normal">
           {authError}
         </div>
       )}
 
       {/* Main Credentials Form */}
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-3.5">
         <AuthInput
           label="Work Email"
           type="email"
@@ -166,45 +166,45 @@ export function LoginForm() {
           {...register('password')}
         />
 
-        <div className="flex items-center justify-between pt-1">
-          <label className="flex items-center gap-2 text-xs font-mono text-neutral-400 cursor-pointer select-none">
+        <div className="flex items-center justify-between pt-0.5">
+          <label className="flex items-center gap-2 text-xs text-neutral-400 cursor-pointer select-none">
             <input
               type="checkbox"
-              className="w-3.5 h-3.5 rounded bg-[#0A0A0A] border-white/20 text-white focus:ring-0 focus:ring-offset-0"
+              className="w-3.5 h-3.5 rounded-md bg-white/[0.08] border-white/20 text-[#007AFF] focus:ring-0 focus:ring-offset-0"
             />
-            Remember session
+            <span>Remember me</span>
           </label>
           <Link
             href="/forgot-password"
-            className="text-xs font-mono text-neutral-400 hover:text-white transition-colors"
+            className="text-xs text-[#007AFF] hover:underline transition-all font-medium"
           >
             Forgot password?
           </Link>
         </div>
 
         <AuthButton type="submit" isLoading={isLoading} className="mt-2">
-          <span>Sign In to Workspace</span>
+          <span>Sign In</span>
           <ArrowRight className="h-3.5 w-3.5 ml-1" />
         </AuthButton>
       </form>
 
       {/* Divider */}
-      <div className="relative py-2">
+      <div className="relative py-1">
         <div className="absolute inset-0 flex items-center">
           <div className="w-full border-t border-white/[0.08]" />
         </div>
-        <div className="relative flex justify-center text-[10px] uppercase font-mono tracking-widest">
-          <span className="bg-[#050505] px-3 text-neutral-500">OR CONTINUE WITH</span>
+        <div className="relative flex justify-center text-[10px] uppercase font-semibold tracking-wider">
+          <span className="bg-[#0E0E12] px-3 text-neutral-500">or continue with</span>
         </div>
       </div>
 
-      {/* Single Sign-On / Alternative Auth */}
-      <div className="space-y-3">
+      {/* Social / Alternative Auth */}
+      <div className="space-y-2.5">
         <AuthButton
           type="button"
           variant="outline"
           onClick={handleGoogleLogin}
-          className="text-xs font-mono flex items-center justify-center gap-2"
+          className="text-xs flex items-center justify-center gap-2"
         >
           <svg className="h-4 w-4" viewBox="0 0 24 24">
             <path
@@ -231,9 +231,9 @@ export function LoginForm() {
           type="button"
           variant="outline"
           onClick={() => router.push('/otp')}
-          className="text-xs font-mono flex items-center justify-center gap-2"
+          className="text-xs flex items-center justify-center gap-2"
         >
-          <KeyRound className="h-4 w-4 text-neutral-400" />
+          <KeyRound className="h-3.5 w-3.5 text-neutral-400" />
           <span>One-Time Passcode (OTP)</span>
         </AuthButton>
 
@@ -242,21 +242,21 @@ export function LoginForm() {
           type="button"
           variant="secondary"
           onClick={handleDevLogin}
-          className="text-xs font-mono border-white/20 text-neutral-300 flex items-center justify-center gap-2"
+          className="text-xs border-white/10 text-neutral-200 flex items-center justify-center gap-2"
         >
-          <ShieldCheck className="h-4 w-4 text-emerald-400" />
-          <span>Quick Sign In (Demo Admin)</span>
+          <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />
+          <span>Quick Demo Access</span>
         </AuthButton>
       </div>
 
       {/* Signup Link */}
-      <div className="pt-2 text-center text-xs font-mono text-neutral-400">
-        Don&apos;t have a workspace?{' '}
+      <div className="text-center text-xs text-neutral-400 pt-1">
+        New to ACT OS?{' '}
         <Link
           href="/register"
           className="text-white hover:underline underline-offset-4 font-semibold"
         >
-          Create your workspace →
+          Create account
         </Link>
       </div>
     </div>

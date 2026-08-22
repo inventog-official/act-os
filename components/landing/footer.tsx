@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { IoLogoStencil } from 'react-icons/io5'
 
 const footerColumns = [
   {
@@ -68,8 +69,11 @@ export function Footer() {
 
         {/* Bottom Bar */}
         <div className="mt-16 sm:mt-20 pt-8 border-t border-white/[0.06] flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <span className="text-[14px] font-medium text-white tracking-tight">ACT OS</span>
+          <div className="flex items-center gap-2.5">
+            <div className="w-5 h-5 rounded-[5px] bg-white text-black flex items-center justify-center shadow-xs">
+              <IoLogoStencil className="w-3 h-3" />
+            </div>
+            <span className="text-[14px] font-semibold text-white tracking-tight font-sans">ACT OS</span>
             <span className="text-[12px] text-[#666666]">·</span>
             <span className="text-[12px] text-[#666666]">© 2026 ACT OS</span>
           </div>

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { IoLogoStencil } from 'react-icons/io5'
 
 export function Navigation() {
   const [scrolled, setScrolled] = useState(false)
@@ -26,13 +27,13 @@ export function Navigation() {
       <div className="lp-container flex items-center justify-between">
         {/* Brand Mark */}
         <Link href="/" className="flex items-center gap-2.5 group">
-          <div className="w-5 h-5 rounded-[4px] bg-white flex items-center justify-center transition-transform duration-200 group-hover:scale-95">
-            <div className="w-2 h-2 rounded-[1px] bg-black" />
+          <div className="w-6 h-6 rounded-[7px] bg-white text-black flex items-center justify-center transition-transform duration-200 group-hover:scale-105 shadow-[0_2px_8px_rgba(255,255,255,0.25)]">
+            <IoLogoStencil className="w-3.5 h-3.5" />
           </div>
-          <span className="text-sm font-semibold tracking-wider text-white font-mono">
-            ACT<span className="text-white/40">//</span>OS
+          <span className="text-sm font-semibold tracking-tight text-white font-sans">
+            ACT OS
           </span>
-          <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-medium tracking-wide bg-white/[0.04] text-white/50 border border-white/[0.08]">
+          <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-sans font-medium tracking-wide bg-white/[0.06] text-white/70 border border-white/[0.1]">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
             v2.4
           </span>

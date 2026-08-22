@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { cn } from '@/lib/utils/cn'
 import { Menu, X, ArrowRight } from 'lucide-react'
+import { IoLogoStencil } from 'react-icons/io5'
 
 const navLinks = [
   { label: 'Platform', href: '#platform' },
@@ -47,7 +48,10 @@ export function LandingNavbar() {
         <nav className="lp-container flex items-center justify-between" aria-label="Main navigation">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2.5 group" aria-label="ACT OS Home">
-            <span className="text-[16px] font-medium tracking-tight text-white">
+            <div className="w-6 h-6 rounded-[7px] bg-white text-black flex items-center justify-center transition-transform group-hover:scale-105 shadow-[0_2px_8px_rgba(255,255,255,0.2)]">
+              <IoLogoStencil className="w-3.5 h-3.5" />
+            </div>
+            <span className="text-[16px] font-semibold tracking-tight text-white font-sans">
               ACT OS
             </span>
           </Link>

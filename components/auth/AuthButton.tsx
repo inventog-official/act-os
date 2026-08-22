@@ -22,23 +22,23 @@ export function AuthButton({
     <button
       disabled={disabled || isLoading}
       className={cn(
-        'w-full h-[52px] rounded-[11px] font-mono text-xs uppercase tracking-widest font-semibold flex items-center justify-center gap-2 transition-all duration-200 select-none disabled:opacity-50 disabled:cursor-not-allowed',
+        'w-full h-11 rounded-xl font-sans text-xs sm:text-sm font-medium tracking-tight flex items-center justify-center gap-2 transition-all duration-150 select-none cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed',
         isPrimary &&
-          'bg-white text-black hover:bg-neutral-200 hover:-translate-y-[1px] active:translate-y-0 active:scale-[0.99] shadow-md',
+          'bg-[#007AFF] text-white hover:bg-[#0071E3] active:scale-[0.98] shadow-[0_4px_14px_rgba(0,122,255,0.35)]',
         variant === 'outline' &&
-          'bg-[#0A0A0A] border border-white/[0.12] text-white hover:border-white/30 hover:bg-white/[0.04]',
+          'bg-white/[0.06] border border-white/[0.1] text-white hover:bg-white/[0.1] hover:border-white/20 active:scale-[0.98]',
         variant === 'secondary' &&
-          'bg-white/[0.08] text-white border border-white/10 hover:bg-white/[0.12]',
+          'bg-white/[0.1] text-white hover:bg-white/[0.15] border border-white/[0.12] active:scale-[0.98]',
         variant === 'ghost' &&
-          'bg-transparent text-neutral-400 hover:text-white hover:bg-white/[0.04]',
+          'bg-transparent text-neutral-400 hover:text-white hover:bg-white/[0.06] active:scale-[0.98]',
         className
       )}
       {...props}
     >
       {isLoading ? (
         <span className="inline-flex items-center gap-2">
-          <span className="w-3.5 h-3.5 rounded-full border-2 border-black/40 border-t-black animate-spin" />
-          <span>AUTHENTICATING...</span>
+          <span className="w-3.5 h-3.5 rounded-full border-2 border-white/40 border-t-white animate-spin" />
+          <span>Authenticating...</span>
         </span>
       ) : (
         children

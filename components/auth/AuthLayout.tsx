@@ -2,6 +2,8 @@
 
 import React, { ReactNode } from 'react'
 import Link from 'next/link'
+import { motion } from 'framer-motion'
+import { IoLogoStencil } from 'react-icons/io5'
 import { Atmosphere } from '@/components/marketing/Atmosphere'
 import { AuthVisual } from './AuthVisual'
 
@@ -13,75 +15,81 @@ interface AuthLayoutProps {
 
 export function AuthLayout({
   children,
-  headline = 'Your business, connected.',
-  subtitle = 'Enter the operating system that brings your business together.',
+  headline = 'Designed for seamless operations.',
+  subtitle = 'The intelligence and elegance of macOS, built for your entire enterprise.',
 }: AuthLayoutProps) {
   return (
-    <div className="min-h-screen w-full bg-black text-white flex flex-col lg:flex-row overflow-x-hidden selection:bg-white selection:text-black">
-      {/* LEFT — BRAND EXPERIENCE (55-60% on desktop) */}
-      <div className="relative hidden lg:flex lg:w-[58%] min-h-screen bg-black flex-col justify-between p-12 lg:p-16 border-r border-white/[0.08] overflow-hidden">
-        {/* Soft Colorful Gradient Atmosphere */}
-        <Atmosphere variant="cosmic" intensity={0.4} />
+    <div className="relative min-h-screen w-full bg-[#000000] text-white flex items-center justify-center p-4 sm:p-6 lg:p-10 selection:bg-[#007AFF] selection:text-white font-sans overflow-hidden">
+      {/* Dynamic Apple Wallpaper Ambient Atmosphere */}
+      <Atmosphere variant="cosmic" intensity={0.5} />
 
-        {/* Top Brand Logo */}
-        <div className="relative z-10 animate-fade-in">
-          <Link href="/" className="inline-flex items-center gap-3 group">
-            <div className="w-6 h-6 rounded-[5px] bg-white flex items-center justify-center transition-transform group-hover:scale-105">
-              <div className="w-2.5 h-2.5 rounded-[1px] bg-black" />
-            </div>
-            <span className="font-mono text-sm font-semibold tracking-widest text-white">
-              ACT<span className="text-white/40">//</span>OS
-            </span>
-          </Link>
-        </div>
-
-        {/* Center Alive Procedural Visual */}
-        <div className="relative z-10 my-auto flex items-center justify-center max-w-lg mx-auto w-full h-[480px]">
-          <AuthVisual />
-        </div>
-
-        {/* Bottom Brand Narrative Copy */}
-        <div className="relative z-10 max-w-lg">
-          <div className="font-mono text-[11px] uppercase tracking-[0.2em] text-white/50 mb-3">
-            ACT OS — OPERATING ENVIRONMENT
+      {/* macOS Main Window Frame */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.96, y: 12 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ type: 'spring', stiffness: 300, damping: 28 }}
+        className="relative z-10 w-full max-w-5xl min-h-[640px] rounded-3xl overflow-hidden border border-white/[0.12] bg-[#16161A]/85 backdrop-blur-3xl shadow-[0_35px_100px_rgba(0,0,0,0.8),inset_0_1px_0_rgba(255,255,255,0.15)] flex flex-col lg:flex-row"
+      >
+        {/* macOS Traffic Lights Window Header Bar */}
+        <div className="absolute top-0 inset-x-0 h-11 flex items-center justify-between px-4 z-20 pointer-events-none">
+          <div className="flex items-center gap-2 pointer-events-auto">
+            <div className="w-3 h-3 rounded-full bg-[#FF5F56] border border-black/20" />
+            <div className="w-3 h-3 rounded-full bg-[#FFBD2E] border border-black/20" />
+            <div className="w-3 h-3 rounded-full bg-[#27C93F] border border-black/20" />
           </div>
-          <h2 className="text-3xl lg:text-4xl font-light tracking-tight text-white mb-3 text-balance">
-            {headline}
-          </h2>
-          <p className="text-sm lg:text-base text-neutral-400 font-light leading-relaxed">
-            {subtitle}
-          </p>
+          <div className="flex items-center gap-1.5 text-xs text-white/40 font-medium">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            <span>ACT OS System v2.4</span>
+          </div>
         </div>
-      </div>
 
-      {/* RIGHT — AUTHENTICATION FORM (42-45% on desktop) */}
-      <div className="relative w-full lg:w-[42%] min-h-screen bg-[#050505] flex flex-col justify-between p-6 sm:p-12 lg:p-16 overflow-y-auto">
-        {/* Mobile Top Header */}
-        <div className="lg:hidden flex items-center justify-between pb-8 border-b border-white/[0.06] mb-8">
-          <Link href="/" className="inline-flex items-center gap-2.5">
-            <div className="w-5 h-5 rounded-[4px] bg-white flex items-center justify-center">
-              <div className="w-2 h-2 rounded-[1px] bg-black" />
+        {/* LEFT — Apple Visual Canvas & System Intro (Hidden on mobile) */}
+        <div className="relative hidden lg:flex lg:w-[50%] flex-col justify-between p-10 pt-16 border-r border-white/[0.08] bg-gradient-to-b from-white/[0.03] to-transparent">
+          {/* Logo */}
+          <Link href="/" className="inline-flex items-center gap-2.5 group w-fit">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-white via-white/90 to-neutral-200 text-black shadow-[0_4px_12px_rgba(255,255,255,0.2)] flex items-center justify-center transition-transform group-hover:scale-105">
+              <IoLogoStencil className="w-4 h-4 text-black" />
             </div>
-            <span className="font-mono text-xs font-semibold tracking-wider text-white">
-              ACT<span className="text-white/40">//</span>OS
+            <span className="font-semibold text-sm tracking-tight text-white font-sans">
+              ACT OS
             </span>
           </Link>
-          <span className="font-mono text-[10px] uppercase text-neutral-500 tracking-wider">
-            KERNEL v2.4
-          </span>
+
+          {/* Centered Graphic Sphere */}
+          <div className="my-auto flex items-center justify-center w-full h-[320px]">
+            <AuthVisual />
+          </div>
+
+          {/* Narrative */}
+          <div className="space-y-2">
+            <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-white/[0.08] border border-white/10 text-[11px] font-medium text-white/70">
+              <span>Apple-Grade Architecture</span>
+            </div>
+            <h2 className="text-2xl font-medium tracking-tight text-white text-balance">
+              {headline}
+            </h2>
+            <p className="text-xs text-neutral-400 font-normal leading-relaxed max-w-sm">
+              {subtitle}
+            </p>
+          </div>
         </div>
 
-        {/* Vertically Centered Form Container (Max-width: 420px) */}
-        <div className="my-auto w-full max-w-[420px] mx-auto py-8">
-          {children}
-        </div>
+        {/* RIGHT — Apple ID / Sign In Form Container */}
+        <div className="relative w-full lg:w-[50%] flex flex-col justify-between p-6 sm:p-10 pt-16 sm:pt-16 bg-[#0E0E12]/80 backdrop-blur-xl">
+          <div className="my-auto w-full max-w-[360px] mx-auto">
+            {children}
+          </div>
 
-        {/* Footer Technical Metadata */}
-        <div className="w-full max-w-[420px] mx-auto pt-8 border-t border-white/[0.06] flex items-center justify-between text-[11px] font-mono text-neutral-600">
-          <span>SECURE KERNEL</span>
-          <span>AES-256 ENCRYPTED</span>
+          {/* Footer Security Badges */}
+          <div className="pt-6 border-t border-white/[0.06] flex items-center justify-between text-[11px] text-neutral-500 font-sans">
+            <span className="flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500/80" />
+              Secure Enclave Auth
+            </span>
+            <span>256-bit Encryption</span>
+          </div>
         </div>
-      </div>
+      </motion.div>
     </div>
   )
 }

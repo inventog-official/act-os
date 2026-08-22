@@ -2,6 +2,7 @@
 
 import React from 'react'
 import Link from 'next/link'
+import { IoLogoStencil } from 'react-icons/io5'
 
 export function Footer() {
   return (
@@ -10,12 +11,12 @@ export function Footer() {
         <div className="grid grid-cols-2 md:grid-cols-5 gap-10 pb-16 border-b border-white/[0.08]">
           {/* Brand Col */}
           <div className="col-span-2 space-y-4">
-            <Link href="/" className="flex items-center gap-2.5">
-              <div className="w-5 h-5 rounded-[4px] bg-white flex items-center justify-center">
-                <div className="w-2 h-2 rounded-[1px] bg-black" />
+            <Link href="/" className="flex items-center gap-2.5 group">
+              <div className="w-6 h-6 rounded-[7px] bg-white text-black flex items-center justify-center transition-transform group-hover:scale-105 shadow-[0_2px_8px_rgba(255,255,255,0.2)]">
+                <IoLogoStencil className="w-3.5 h-3.5" />
               </div>
-              <span className="font-mono text-sm font-semibold tracking-wider text-white">
-                ACT<span className="text-white/40">//</span>OS
+              <span className="font-sans text-sm font-semibold tracking-tight text-white">
+                ACT OS
               </span>
             </Link>
             <p className="text-sm text-neutral-400 max-w-sm font-light leading-relaxed">

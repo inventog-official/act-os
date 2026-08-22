@@ -22,6 +22,7 @@ import { AuthInput } from './AuthInput'
 import { AuthButton } from './AuthButton'
 import { setMockUser } from '@/lib/auth/mock-auth'
 import { useAuthStore } from '@/lib/store'
+import { IoLogoStencil } from 'react-icons/io5'
 
 export function RegisterForm() {
   const router = useRouter()
@@ -148,28 +149,31 @@ export function RegisterForm() {
   }
 
   return (
-    <div className="space-y-8 animate-fade-in">
+    <div className="space-y-6 font-sans">
       {/* Header & Step Indicator */}
       <div>
         <div className="flex items-center justify-between mb-4 pb-3 border-b border-white/[0.08]">
-          <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-neutral-500">
-            ACT OS // ONBOARDING
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded-[7px] bg-white text-black flex items-center justify-center shadow-xs">
+              <IoLogoStencil className="w-3.5 h-3.5" />
+            </div>
+            <span className="text-xs font-semibold text-white tracking-tight">ACT OS</span>
           </div>
-          <div className="flex items-center gap-2 font-mono text-xs">
-            <span className={step === 1 ? 'text-white font-bold' : 'text-neutral-600'}>
-              01 ACCOUNT
+          <div className="flex items-center gap-2 text-xs font-medium">
+            <span className={step === 1 ? 'text-white font-semibold' : 'text-neutral-500'}>
+              01 Account
             </span>
             <span className="text-neutral-700">/</span>
-            <span className={step === 2 ? 'text-white font-bold' : 'text-neutral-600'}>
-              02 WORKSPACE
+            <span className={step === 2 ? 'text-white font-semibold' : 'text-neutral-500'}>
+              02 Workspace
             </span>
           </div>
         </div>
 
-        <h1 className="text-3xl font-light text-white tracking-tight">
+        <h1 className="text-2xl font-semibold text-white tracking-tight">
           {step === 1 ? 'Create your account' : 'Build your workspace'}
         </h1>
-        <p className="text-sm text-neutral-400 font-light mt-1.5 leading-relaxed">
+        <p className="text-xs text-neutral-400 font-normal mt-1 leading-relaxed">
           {step === 1
             ? 'Set up your master credentials for ACT OS.'
             : 'Configure your primary organization and operational environment.'}
@@ -177,7 +181,7 @@ export function RegisterForm() {
       </div>
 
       {authError && (
-        <div className="p-3.5 rounded-[10px] bg-red-950/40 border border-red-500/30 text-xs font-mono text-red-300">
+        <div className="p-3 rounded-xl bg-red-950/40 border border-red-500/30 text-xs text-red-300 font-normal">
           {authError}
         </div>
       )}

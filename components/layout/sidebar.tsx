@@ -29,6 +29,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useUIStore, useOrganizationStore } from '@/lib/store'
+import { IoLogoStencil } from 'react-icons/io5'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -141,24 +142,42 @@ const DOCK_APPS: {
         href: '/finance',
         category: 'BUSINESS',
         icon: Wallet,
-        gradient: 'from-[#34C759] to-[#147D3B]',
-        glowColor: 'rgba(52, 199, 89, 0.6)',
+        gradient: 'from-[#BF5AF2] to-[#8E44AD]',
+        glowColor: 'rgba(191, 90, 242, 0.6)',
       },
       {
         title: 'People & HR',
         href: '/hr',
         category: 'BUSINESS',
         icon: UserRound,
-        gradient: 'from-[#BF5AF2] to-[#8944AB]',
-        glowColor: 'rgba(191, 90, 242, 0.6)',
+        gradient: 'from-[#FF2D55] to-[#C71F40]',
+        glowColor: 'rgba(255, 45, 85, 0.6)',
       },
+    ],
+  },
+  {
+    group: 'intelligence',
+    items: [
       {
-        title: 'Analytics',
+        title: 'Telemetry & Analytics',
         href: '/analytics',
         category: 'INTELLIGENCE',
         icon: BarChart3,
-        gradient: 'from-[#6366F1] to-[#4338CA]',
-        glowColor: 'rgba(99, 102, 241, 0.6)',
+        gradient: 'from-[#5AC8FA] to-[#007AFF]',
+        glowColor: 'rgba(90, 200, 250, 0.6)',
+      },
+    ],
+  },
+  {
+    group: 'system',
+    items: [
+      {
+        title: 'System Preferences',
+        href: '/settings/workspace',
+        category: 'SYSTEM',
+        icon: Settings,
+        gradient: 'from-[#8E8E93] to-[#48484A]',
+        glowColor: 'rgba(142, 142, 147, 0.6)',
       },
     ],
   },
@@ -290,7 +309,7 @@ export function Sidebar({ orgSlug }: { orgSlug: string }) {
                   title={currentOrganization?.name || 'ACT OS'}
                   className="w-10 h-10 rounded-[12px] bg-gradient-to-b from-neutral-900 to-black dark:from-white dark:to-neutral-200 text-white dark:text-black flex items-center justify-center shadow-md hover:scale-105 active:scale-95 transition-transform duration-150 outline-none group border border-white/10 dark:border-black/10"
                 >
-                  <div className="w-3.5 h-3.5 rounded-[2px] bg-white dark:bg-black group-hover:scale-110 transition-transform" />
+                  <IoLogoStencil className="w-4 h-4 text-white dark:text-black group-hover:scale-110 transition-transform" />
                 </button>
               </DropdownMenuTrigger>
 
