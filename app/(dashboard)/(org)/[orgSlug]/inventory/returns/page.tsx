@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, use, useEffect, useCallback } from 'react'
-import { Plus, RefreshCw, Package } from 'lucide-react'
+import { Plus, RefreshCw, Package, CheckCircle2, XCircle } from 'lucide-react'
 import { useOrganizationStore } from '@/lib/store'
 import { DashboardShell } from '@/components/layout/dashboard-shell'
 import { InventoryShell } from '@/components/inventory/inventory-shell'
@@ -15,7 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Pagination } from '@/components/ui/pagination'
 import { formatCurrency } from '@/lib/utils'
-import { listStockMovements, listWarehouses, listSuppliers, createPurchaseReturn } from '@/lib/actions/inventory'
+import { listWarehouses, listSuppliers, createPurchaseReturn, listPurchaseReturns, listPurchaseReturnLines, approvePurchaseReturn, cancelPurchaseReturn } from '@/lib/actions/inventory'
 import { searchProducts } from '@/lib/actions/inventory'
 
 export default function ReturnsPage({ params }: { params: Promise<{ orgSlug: string }> }) {
@@ -37,8 +37,8 @@ export default function ReturnsPage({ params }: { params: Promise<{ orgSlug: str
   const fetchData = useCallback(async () => {
     if (!currentOrganization) return
     try {
-      const [movRes, supRes, whRes, prodRes] = await Promise.all([
-        listStockMovements(currentOrganization.id, { type: 'return', limit: 200 }),
+      const [retRes, supRes, whRes, prodRes] = await Promise.all([
+        listPurchaseReturns(currentOrganization.id),
         listSuppliers(currentOrganization.id),
         listWarehouses(currentOrganization.id),
         searchProducts(currentOrganization.id),
@@ -46,11 +46,11 @@ export default function ReturnsPage({ params }: { params: Promise<{ orgSlug: str
       setSuppliers(supRes ?? [])
       setWarehouses(whRes ?? [])
       setProducts(prodRes ?? [])
-      const byRef: Record<string, any> = {}
-      for (const m of movRes ?? []) {
-        if (m.referenceId) byRef[m.referenceId] = { ...(byRef[m.referenceId] || {}), id: m.referenceId, productId: m.productId, warehouseId: m.warehouseId, quantity: m.quantity, createdAt: m.createdAt, status: 'completed' }
-      }
-      setReturns(Object.values(byRef))
+      const withLines = await Promise.all((retRes ?? []).map(async (r: any) => {
+        const rLines = await listPurchaseReturnLines(currentOrganization.id, r.id).catch(() => [])
+        return { ...r, lines: rLines ?? [] }
+      }))
+      setReturns(withLines)
     } catch (err) {
       console.error(err)
     } finally {
@@ -95,6 +95,17 @@ export default function ReturnsPage({ params }: { params: Promise<{ orgSlug: str
       console.error(err)
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  const handleStatus = async (r: any, action: 'approve' | 'cancel') => {
+    if (!currentOrganization) return
+    try {
+      if (action === 'approve') await approvePurchaseReturn(currentOrganization.id, r.id)
+      else await cancelPurchaseReturn(currentOrganization.id, r.id)
+      fetchData()
+    } catch (err) {
+      console.error(err)
     }
   }
 
@@ -193,7 +204,7 @@ export default function ReturnsPage({ params }: { params: Promise<{ orgSlug: str
                   <table className="w-full">
                     <thead>
                       <tr className="border-b border-zinc-200 dark:border-zinc-800">
-                        {['Return', 'Product', 'Warehouse', 'Quantity', 'Date', 'Status'].map(h => (
+                        {['Return', 'Supplier', 'Lines', 'Total', 'Date', 'Status', 'Actions'].map(h => (
                           <th key={h} className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">{h}</th>
                         ))}
                       </tr>
@@ -201,17 +212,32 @@ export default function ReturnsPage({ params }: { params: Promise<{ orgSlug: str
                     <tbody>
                       {paged.map((r) => (
                         <tr key={r.id} className="border-b border-zinc-100 dark:border-zinc-800/50">
-                          <td className="px-4 py-3 text-sm font-mono">{r.id.slice(0, 8)}</td>
+                          <td className="px-4 py-3 text-sm font-mono">{r.returnNumber || r.id.slice(0, 8)}</td>
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-2">
                               <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-zinc-100 dark:bg-zinc-800"><Package className="h-3.5 w-3.5 text-zinc-500" /></span>
-                              <span className="text-sm font-medium">{prodName(r.productId)}</span>
+                              <div>
+                                <span className="text-sm font-medium">{supplierName(r.supplierId)}</span>
+                                {r.reason && <p className="text-xs text-zinc-500">{r.reason}</p>}
+                              </div>
                             </div>
                           </td>
-                          <td className="px-4 py-3 text-sm text-zinc-500">{r.warehouseId?.slice(0, 8)}</td>
-                          <td className="px-4 py-3 text-sm font-semibold">{Number(r.quantity)}</td>
+                          <td className="px-4 py-3 text-sm text-zinc-500">
+                            {(r.lines ?? []).length === 0 ? '—' : (r.lines ?? []).map((l: any) => `${prodName(l.productId)} × ${Number(l.quantity)}`).join(', ')}
+                          </td>
+                          <td className="px-4 py-3 text-sm font-semibold">{formatCurrency(Number(r.totalAmount ?? 0))}</td>
                           <td className="px-4 py-3 text-sm text-zinc-500">{r.createdAt ? new Date(r.createdAt).toLocaleDateString() : '—'}</td>
-                          <td className="px-4 py-3"><Badge variant="secondary">{r.status}</Badge></td>
+                          <td className="px-4 py-3"><Badge variant={r.status === 'draft' ? 'secondary' : r.status === 'approved' ? 'success' : 'outline'}>{r.status}</Badge></td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-1">
+                              {r.status === 'draft' && (
+                                <>
+                                  <Button variant="ghost" size="sm" onClick={() => handleStatus(r, 'approve')} title="Approve return"><CheckCircle2 className="h-4 w-4 text-emerald-500" /></Button>
+                                  <Button variant="ghost" size="sm" onClick={() => handleStatus(r, 'cancel')} title="Cancel return"><XCircle className="h-4 w-4 text-zinc-400" /></Button>
+                                </>
+                              )}
+                            </div>
+                          </td>
                         </tr>
                       ))}
                     </tbody>

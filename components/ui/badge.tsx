@@ -3,17 +3,24 @@ import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from '@/lib/utils'
 
 const badgeVariants = cva(
-  'inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors',
+  'inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium transition-colors border',
   {
     variants: {
       variant: {
-        default: 'border-transparent bg-zinc-900 text-zinc-50 dark:bg-zinc-50 dark:text-zinc-900',
-        secondary: 'border-transparent bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-50',
-        destructive: 'border-transparent bg-red-500 text-zinc-50',
-        outline: 'text-zinc-700 dark:text-zinc-300',
-        success: 'border-transparent bg-emerald-500 text-white',
-        warning: 'border-transparent bg-amber-500 text-white',
-        info: 'border-transparent bg-blue-500 text-white',
+        default:
+          'border-transparent bg-neutral-900 text-white dark:bg-white dark:text-neutral-950',
+        secondary:
+          'border-transparent bg-neutral-100 text-neutral-800 dark:bg-white/[0.1] dark:text-white',
+        destructive:
+          'border-transparent bg-red-500/15 text-red-700 dark:bg-red-500/20 dark:text-red-300 border-red-200/50 dark:border-red-500/20',
+        outline:
+          'border-neutral-200 dark:border-white/15 text-neutral-700 dark:text-neutral-300',
+        success:
+          'border-emerald-200/60 bg-emerald-50 text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/15 dark:text-emerald-300',
+        warning:
+          'border-amber-200/60 bg-amber-50 text-amber-700 dark:border-amber-500/20 dark:bg-amber-500/15 dark:text-amber-300',
+        info:
+          'border-blue-200/60 bg-blue-50 text-blue-700 dark:border-blue-500/20 dark:bg-blue-500/15 dark:text-blue-300',
       },
     },
     defaultVariants: {

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, use, useEffect, useCallback } from 'react'
-import { Plus, FileText, Send, CheckCircle2, XCircle } from 'lucide-react'
+import { Plus, FileText, Send, CheckCircle2, XCircle, Pencil } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useOrganizationStore } from '@/lib/store'
 import { DashboardShell } from '@/components/layout/dashboard-shell'
@@ -16,7 +16,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Pagination } from '@/components/ui/pagination'
 import { formatCurrency } from '@/lib/utils'
-import { listPurchaseRequests, createPurchaseRequest, submitPurchaseRequest, approvePurchaseRequest } from '@/lib/actions/inventory'
+import { listPurchaseRequests, createPurchaseRequest, submitPurchaseRequest, approvePurchaseRequest, cancelPurchaseRequest, updatePurchaseRequest, getPurchaseRequestById } from '@/lib/actions/inventory'
 import { searchProducts } from '@/lib/actions/inventory'
 import { listSuppliers } from '@/lib/actions/inventory'
 import { listUnits } from '@/lib/actions/inventory'
@@ -46,6 +46,11 @@ export default function PurchaseRequestsPage({ params }: { params: Promise<{ org
   const [submitting, setSubmitting] = useState(false)
   const [form, setForm] = useState({ request_number: '', title: '', description: '', department_id: '', currency: 'USD', notes: '' })
   const [lines, setLines] = useState([{ product_id: '', description: '', quantity: '', unit_price: '', unit_id: '', preferred_supplier_id: '' }])
+  const [editDialogOpen, setEditDialogOpen] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editSubmitting, setEditSubmitting] = useState(false)
+  const [editForm, setEditForm] = useState({ request_number: '', title: '', description: '', department_id: '', currency: 'USD', notes: '' })
+  const [editLines, setEditLines] = useState([{ product_id: '', description: '', quantity: '', unit_price: '', unit_id: '', preferred_supplier_id: '' }])
 
   const fetchData = useCallback(async () => {
     if (!currentOrganization) return
@@ -117,6 +122,66 @@ export default function PurchaseRequestsPage({ params }: { params: Promise<{ org
   }
   const handleApprove = async (id: string) => {
     try { await approvePurchaseRequest(currentOrganization!.id, id); fetchData() } catch (err) { console.error(err) }
+  }
+  const handleCancel = async (id: string) => {
+    try { await cancelPurchaseRequest(currentOrganization!.id, id); fetchData() } catch (err) { console.error(err) }
+  }
+
+  const openEdit = async (r: any) => {
+    if (!currentOrganization) return
+    try {
+      const full = await getPurchaseRequestById(currentOrganization.id, r.id)
+      if (!full) return
+      setEditingId(r.id)
+      setEditForm({
+        request_number: full.requestNumber ?? '',
+        title: full.title ?? '',
+        description: full.description ?? '',
+        department_id: full.departmentId ?? '',
+        currency: full.currency ?? 'USD',
+        notes: full.notes ?? '',
+      })
+      setEditLines((full.lines ?? []).map((l: any) => ({
+        product_id: l.productId ?? '',
+        description: l.description ?? '',
+        quantity: String(l.quantity ?? ''),
+        unit_price: String(l.unitPrice ?? ''),
+        unit_id: '',
+        preferred_supplier_id: l.preferredSupplierId ?? '',
+      })))
+      setEditDialogOpen(true)
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
+  const handleEdit = async () => {
+    if (!currentOrganization || !editingId || !editForm.title) return
+    const validLines = editLines.filter(l => l.description && l.quantity)
+    if (validLines.length === 0) return
+    setEditSubmitting(true)
+    try {
+      await updatePurchaseRequest(currentOrganization.id, editingId, {
+        request_number: editForm.request_number,
+        title: editForm.title,
+        description: editForm.description || undefined,
+        department_id: editForm.department_id || null,
+        currency: editForm.currency,
+        notes: editForm.notes || undefined,
+      }, validLines.map(l => ({
+        product_id: l.product_id || null,
+        description: l.description,
+        quantity: Number(l.quantity),
+        unit_price: Number(l.unit_price || 0),
+        preferred_supplier_id: l.preferred_supplier_id || null,
+      })))
+      setEditDialogOpen(false)
+      fetchData()
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setEditSubmitting(false)
+    }
   }
 
   return (
@@ -210,6 +275,81 @@ export default function PurchaseRequestsPage({ params }: { params: Promise<{ org
                 </div>
               </DialogContent>
             </Dialog>
+            <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+              <DialogContent className="max-h-[85vh] overflow-y-auto">
+                <DialogHeader><DialogTitle>Edit Purchase Request</DialogTitle></DialogHeader>
+                <div className="space-y-4 py-2">
+                  <div className="space-y-2">
+                    <Label>Title *</Label>
+                    <Input value={editForm.title} onChange={(e) => setEditForm({ ...editForm, title: e.target.value })} />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Description</Label>
+                      <Input value={editForm.description} onChange={(e) => setEditForm({ ...editForm, description: e.target.value })} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Department</Label>
+                      <Select value={editForm.department_id || 'none'} onValueChange={(v) => setEditForm({ ...editForm, department_id: v === 'none' ? '' : v })}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">No department</SelectItem>
+                          {departments.map((d: any) => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-base font-medium">Line Items</Label>
+                    {editLines.map((line, i) => (
+                      <div key={i} className="space-y-3 rounded-lg border border-zinc-200 dark:border-zinc-800 p-3">
+                        <div className="space-y-2">
+                          <Label>Product</Label>
+                          <Select value={line.product_id || 'none'} onValueChange={(v) => { const nl = [...editLines]; nl[i] = { ...nl[i], product_id: v === 'none' ? '' : v }; setEditLines(nl) }}>
+                            <SelectTrigger><SelectValue placeholder="Select product" /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">No product</SelectItem>
+                              {products.map((p: any) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Description *</Label>
+                          <Input value={line.description} onChange={(e) => { const nl = [...editLines]; nl[i] = { ...nl[i], description: e.target.value }; setEditLines(nl) }} />
+                        </div>
+                        <div className="grid grid-cols-3 gap-3">
+                          <div className="space-y-2">
+                            <Label>Quantity *</Label>
+                            <Input type="number" value={line.quantity} onChange={(e) => { const nl = [...editLines]; nl[i] = { ...nl[i], quantity: e.target.value }; setEditLines(nl) }} />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Unit Price</Label>
+                            <Input type="number" value={line.unit_price} onChange={(e) => { const nl = [...editLines]; nl[i] = { ...nl[i], unit_price: e.target.value }; setEditLines(nl) }} />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Preferred Supplier</Label>
+                            <Select value={line.preferred_supplier_id || 'none'} onValueChange={(v) => { const nl = [...editLines]; nl[i] = { ...nl[i], preferred_supplier_id: v === 'none' ? '' : v }; setEditLines(nl) }}>
+                              <SelectTrigger><SelectValue placeholder="Any" /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="none">Any</SelectItem>
+                                {suppliers.map((s: any) => <SelectItem key={s.id} value={s.id}>{s.supplierCode || s.contactName}</SelectItem>)}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                        {editLines.length > 1 && (
+                          <Button variant="ghost" size="sm" onClick={() => setEditLines(editLines.filter((_, j) => j !== i))}>Remove line</Button>
+                        )}
+                      </div>
+                    ))}
+                    <Button variant="outline" size="sm" onClick={() => setEditLines([...editLines, { product_id: '', description: '', quantity: '', unit_price: '', unit_id: '', preferred_supplier_id: '' }])}>
+                      <Plus className="h-4 w-4" /> Add line
+                    </Button>
+                  </div>
+                  <Button onClick={handleEdit} disabled={editSubmitting || !editForm.title} className="w-full">{editSubmitting ? 'Saving...' : 'Save Changes'}</Button>
+                </div>
+              </DialogContent>
+            </Dialog>
           </div>
 
           <Card>
@@ -257,6 +397,12 @@ export default function PurchaseRequestsPage({ params }: { params: Promise<{ org
                               )}
                               {r.status === 'pending_review' && (
                                 <Button size="sm" variant="default" onClick={() => handleApprove(r.id)}><CheckCircle2 className="h-3.5 w-3.5" /> Approve</Button>
+                              )}
+                              {['draft', 'pending_review'].includes(r.status) && (
+                                <>
+                                  <Button size="sm" variant="ghost" onClick={() => openEdit(r)} title="Edit request"><Pencil className="h-3.5 w-3.5" /></Button>
+                                  <Button size="sm" variant="ghost" onClick={() => handleCancel(r.id)} title="Cancel request"><XCircle className="h-3.5 w-3.5 text-zinc-400" /></Button>
+                                </>
                               )}
                             </div>
                           </td>

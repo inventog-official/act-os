@@ -79,7 +79,7 @@ export default function ReceivingPage({ params }: { params: Promise<{ orgSlug: s
 
   const handleSubmit = async () => {
     if (!currentOrganization || !form.po_id || !form.warehouse_id || !form.supplier_id) return
-    const validLines = lines.filter(l => l.product_id && Number(l.received_quantity) > 0)
+    const validLines = lines.filter(l => l.product_id && (Number(l.received_quantity) > 0 || Number(l.damaged_quantity || 0) > 0 || Number(l.missing_quantity || 0) > 0 || Number(l.rejected_quantity || 0) > 0))
     if (validLines.length === 0) return
     setSubmitting(true)
     try {

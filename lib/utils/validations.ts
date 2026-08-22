@@ -702,6 +702,10 @@ export const inventorySupplierSchema = z.object({
   is_active: z.boolean().optional(),
 })
 
+export const inventorySupplierUpdateSchema = inventorySupplierSchema.partial().extend({
+  company_id: z.string().uuid().optional(),
+})
+
 export const inventorySupplierProductSchema = z.object({
   supplier_id: z.string().uuid(),
   product_id: z.string().uuid(),

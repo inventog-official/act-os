@@ -10,10 +10,8 @@ export default function OrgSlugLayout({
   params: Promise<{ orgSlug: string }>
 }) {
   return (
-    <Providers>
-      <OrgProvider params={params}>
-        {children}
-      </OrgProvider>
-    </Providers>
+    <OrgProvider params={params}>
+      {children}
+    </OrgProvider>
   )
 }

@@ -23,7 +23,7 @@ import {
   type InventoryReservationInput,
 } from '@/lib/utils/validations'
 import { getCurrentUser, guardInventoryPermission, logInventoryActivity } from './utils'
-import { adjustStockAtomic } from './inventory'
+import { adjustStockAtomic, listStockItems } from './inventory'
 
 export async function listStockMovements(organizationId: string, opts?: { productId?: string; warehouseId?: string; type?: string; limit?: number }) {
   await guardInventoryPermission(organizationId, 'inventory:stock:read')
@@ -36,6 +36,28 @@ export async function listStockMovements(organizationId: string, opts?: { produc
     .where(and(...conditions))
     .orderBy(desc(inventoryStockMovements.createdAt))
     .limit(opts?.limit ?? 100)
+}
+
+export async function getStockLevel(organizationId: string, productId: string, warehouseId?: string) {
+  await guardInventoryPermission(organizationId, 'inventory:stock:read')
+  const rows = await listStockItems(organizationId, { productId, warehouseId })
+  return rows
+}
+
+export async function getAvailableStock(organizationId: string, productId?: string) {
+  await guardInventoryPermission(organizationId, 'inventory:stock:read')
+  const conditions: any[] = [eq(inventoryItems.organizationId, organizationId), isNull(inventoryItems.deletedAt)]
+  if (productId) conditions.push(eq(inventoryItems.productId, productId))
+  const rows = await db.select().from(inventoryItems).where(and(...conditions))
+  const byProduct = new Map<string, { productId: string; onHand: number; reserved: number; available: number }>()
+  for (const r of rows) {
+    const cur = byProduct.get(r.productId) ?? { productId: r.productId, onHand: 0, reserved: 0, available: 0 }
+    cur.onHand += Number(r.quantityOnHand)
+    cur.reserved += Number(r.reservedQuantity)
+    cur.available += Number(r.quantityOnHand) - Number(r.reservedQuantity)
+    byProduct.set(r.productId, cur)
+  }
+  return Array.from(byProduct.values())
 }
 
 export async function createStockMovement(organizationId: string, input: InventoryStockMovementInput) {

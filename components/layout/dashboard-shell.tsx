@@ -19,16 +19,13 @@ export function DashboardShell({ children, orgSlug }: DashboardShellProps) {
   const isMobile = useMediaQuery('(max-width: 768px)')
 
   return (
-    <div className="relative min-h-screen bg-[#080808] text-white selection:bg-white selection:text-black">
+    <div className="relative min-h-screen bg-[#F8F9FA] dark:bg-[#080808] text-neutral-900 dark:text-white transition-colors duration-200 selection:bg-neutral-900 selection:text-white dark:selection:bg-white dark:selection:text-black">
       <Sidebar orgSlug={orgSlug} />
       <Navbar orgSlug={orgSlug} />
       <CommandPalette orgSlug={orgSlug} />
 
       <main
-        className={cn(
-          'min-h-screen pt-16 transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] pb-16 md:pb-6',
-          sidebarOpen && !isMobile ? 'ml-[260px]' : isMobile ? 'ml-0' : 'ml-[72px]'
-        )}
+        className="min-h-screen pt-16 transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] pb-16 md:pb-8 ml-0 md:ml-[76px]"
       >
         <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto animate-fade-in">
           {children}

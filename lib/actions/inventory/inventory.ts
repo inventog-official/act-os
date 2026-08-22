@@ -15,6 +15,7 @@ import {
   inventoryWarehouseSchema,
   inventoryLocationSchema,
   inventorySupplierSchema,
+  inventorySupplierUpdateSchema,
   inventorySupplierProductSchema,
   type InventoryUnitInput,
   type InventoryWarehouseInput,
@@ -145,6 +146,32 @@ export async function createSupplier(organizationId: string, input: InventorySup
   return supplier
 }
 
+export async function updateSupplier(organizationId: string, supplierId: string, input: Partial<InventorySupplierInput>) {
+  await guardInventoryPermission(organizationId, 'inventory:suppliers:manage')
+  const user = await getCurrentUser()
+  const data = inventorySupplierUpdateSchema.parse(input)
+  const values: Record<string, unknown> = { updatedAt: new Date() }
+  if (data.company_id !== undefined) values.companyId = data.company_id
+  if (data.supplier_code !== undefined) values.supplierCode = data.supplier_code || null
+  if (data.tax_number !== undefined) values.taxNumber = data.tax_number || null
+  if (data.payment_terms !== undefined) values.paymentTerms = data.payment_terms || null
+  if (data.currency !== undefined) values.currency = data.currency
+  if (data.lead_time_days !== undefined) values.leadTimeDays = data.lead_time_days
+  if (data.contact_name !== undefined) values.contactName = data.contact_name || null
+  if (data.contact_email !== undefined) values.contactEmail = data.contact_email || null
+  if (data.contact_phone !== undefined) values.contactPhone = data.contact_phone || null
+  if (data.notes !== undefined) values.notes = data.notes || null
+  if (data.is_preferred !== undefined) values.isPreferred = data.is_preferred
+  if (data.is_active !== undefined) values.isActive = data.is_active
+  const [supplier] = await db.update(inventorySuppliers)
+    .set(values)
+    .where(and(eq(inventorySuppliers.id, supplierId), eq(inventorySuppliers.organizationId, organizationId)))
+    .returning()
+  if (!supplier) throw new Error('Supplier not found')
+  await logInventoryActivity({ organizationId, action: 'supplier.update', resource: 'supplier', resourceId: supplier.id, metadata: { by: user.id, fields: Object.keys(values) } })
+  return supplier
+}
+
 export async function listSuppliers(organizationId: string, opts?: { search?: string; preferred?: boolean; active?: boolean }) {
   await guardInventoryPermission(organizationId, 'inventory:suppliers:read')
   const conditions: any[] = [eq(inventorySuppliers.organizationId, organizationId), NOT_DELETED_SUPPLIER]
@@ -178,14 +205,18 @@ export async function createSupplierProduct(organizationId: string, input: Inven
   return sp
 }
 
-export async function listStockItems(organizationId: string, opts?: { warehouseId?: string; lowStock?: boolean; search?: string }) {
+export async function listStockItems(organizationId: string, opts?: { warehouseId?: string; productId?: string; lowStock?: boolean; search?: string; limit?: number; offset?: number }) {
   await guardInventoryPermission(organizationId, 'inventory:stock:read')
   const conditions: any[] = [sql`i.organization_id = ${organizationId}`, sql`i.deleted_at IS NULL`]
   if (opts?.warehouseId) conditions.push(sql`i.warehouse_id = ${opts.warehouseId}`)
+  if (opts?.productId) conditions.push(sql`i.product_id = ${opts.productId}`)
   if (opts?.lowStock) conditions.push(sql`i.available_quantity <= COALESCE(r.reorder_point, 0)`)
+  if (opts?.search) conditions.push(sql`(p.name ILIKE ${'%' + opts.search + '%'} OR i.sku ILIKE ${'%' + opts.search + '%'})`)
   const where = sql.join(conditions, sql` AND `)
+  const limitClause = opts?.limit ? sql` LIMIT ${opts.limit}` : sql``
+  const offsetClause = opts?.offset ? sql` OFFSET ${opts.offset}` : sql``
   const rows = await db.execute(sql`
-    SELECT i.*, COALESCE(r.reorder_point, 0)::numeric AS reorder_point
+    SELECT i.*, COALESCE(r.reorder_point, 0)::numeric AS reorder_point, p.name AS product_name
     FROM inventory_items i
     LEFT JOIN LATERAL (
       SELECT rr.reorder_point
@@ -197,15 +228,11 @@ export async function listStockItems(organizationId: string, opts?: { warehouseI
       ORDER BY rr.created_at DESC
       LIMIT 1
     ) r ON true
+    LEFT JOIN finance_products p ON p.id = i.product_id
     WHERE ${where}
-    ORDER BY i.product_id ASC
+    ORDER BY i.product_id ASC${limitClause}${offsetClause}
   `)
-  let items: any[] = rows as any[]
-  if (opts?.search) {
-    const term = (opts.search).toLowerCase()
-    items = items.filter((r: any) => r.sku?.toLowerCase().includes(term))
-  }
-  return items
+  return rows as any[]
 }
 
 export async function getStockSummary(organizationId: string) {

@@ -5,6 +5,7 @@ import { financeProductCategories, financeProducts } from '@/db/schema'
 import { eq, and, isNull } from 'drizzle-orm'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { getCurrentUser } from './utils'
+import { logInventoryActivity } from '@/lib/actions/inventory/utils'
 
 export async function getProductCategories(organizationId: string) {
   const supabase = await createServerSupabaseClient()
@@ -134,6 +135,14 @@ export async function createProduct(input: {
     })
     .returning()
 
+  await logInventoryActivity({
+    organizationId: input.organizationId,
+    action: 'product.create',
+    resource: 'product',
+    resourceId: data.id,
+    metadata: { name: data.name, sku: data.sku, by: user.id },
+  })
+
   return data
 }
 
@@ -174,11 +183,36 @@ export async function updateProduct(
     .update(financeProducts)
     .set(values)
     .where(eq(financeProducts.id, id))
+
+  const [product] = await db.select().from(financeProducts).where(eq(financeProducts.id, id)).limit(1)
+  if (product) {
+    await logInventoryActivity({
+      organizationId: product.organizationId,
+      action: 'product.update',
+      resource: 'product',
+      resourceId: product.id,
+      metadata: { name: product.name, fields: Object.keys(values), by: user.id },
+    })
+  }
 }
 
 export async function deleteProduct(id: string) {
+  const [product] = await db
+    .select()
+    .from(financeProducts)
+    .where(eq(financeProducts.id, id))
+    .limit(1)
   await db
     .update(financeProducts)
     .set({ deletedAt: new Date() })
     .where(eq(financeProducts.id, id))
+  if (product) {
+    await logInventoryActivity({
+      organizationId: product.organizationId,
+      action: 'product.delete',
+      resource: 'product',
+      resourceId: product.id,
+      metadata: { name: product.name },
+    })
+  }
 }

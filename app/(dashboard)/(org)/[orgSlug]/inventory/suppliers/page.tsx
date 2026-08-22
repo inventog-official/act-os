@@ -15,7 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Pagination } from '@/components/ui/pagination'
-import { listSuppliers, createSupplier } from '@/lib/actions/inventory'
+import { listSuppliers, createSupplier, updateSupplier } from '@/lib/actions/inventory'
 
 export default function SuppliersPage({ params }: { params: Promise<{ orgSlug: string }> }) {
   const { orgSlug } = use(params)
@@ -30,7 +30,11 @@ export default function SuppliersPage({ params }: { params: Promise<{ orgSlug: s
   const [pageSize, setPageSize] = useState(10)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [editDialogOpen, setEditDialogOpen] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editSubmitting, setEditSubmitting] = useState(false)
   const [form, setForm] = useState({ company_id: '', supplier_code: '', payment_terms: '', currency: 'USD', lead_time_days: '0', contact_name: '', contact_email: '', contact_phone: '', tax_number: '', is_preferred: false })
+  const [editForm, setEditForm] = useState({ company_id: '', supplier_code: '', payment_terms: '', currency: 'USD', lead_time_days: '0', contact_name: '', contact_email: '', contact_phone: '', tax_number: '', is_preferred: false })
 
   const fetchData = useCallback(async () => {
     if (!currentOrganization) return
@@ -87,6 +91,48 @@ export default function SuppliersPage({ params }: { params: Promise<{ orgSlug: s
       console.error(err)
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  const openEdit = (s: any) => {
+    setEditingId(s.id)
+    setEditForm({
+      company_id: s.companyId ?? '',
+      supplier_code: s.supplierCode ?? '',
+      payment_terms: s.paymentTerms ?? '',
+      currency: s.currency ?? 'USD',
+      lead_time_days: String(s.leadTimeDays ?? 0),
+      contact_name: s.contactName ?? '',
+      contact_email: s.contactEmail ?? '',
+      contact_phone: s.contactPhone ?? '',
+      tax_number: s.taxNumber ?? '',
+      is_preferred: !!s.isPreferred,
+    })
+    setEditDialogOpen(true)
+  }
+
+  const handleEdit = async () => {
+    if (!currentOrganization || !editingId) return
+    setEditSubmitting(true)
+    try {
+      await updateSupplier(currentOrganization.id, editingId, {
+        company_id: editForm.company_id || undefined,
+        supplier_code: editForm.supplier_code || undefined,
+        payment_terms: editForm.payment_terms || undefined,
+        currency: editForm.currency,
+        lead_time_days: Number(editForm.lead_time_days || 0),
+        contact_name: editForm.contact_name || undefined,
+        contact_email: editForm.contact_email || undefined,
+        contact_phone: editForm.contact_phone || undefined,
+        tax_number: editForm.tax_number || undefined,
+        is_preferred: editForm.is_preferred,
+      })
+      setEditDialogOpen(false)
+      fetchData()
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setEditSubmitting(false)
     }
   }
 
@@ -165,6 +211,69 @@ export default function SuppliersPage({ params }: { params: Promise<{ orgSlug: s
                 </div>
               </DialogContent>
             </Dialog>
+            <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+              <DialogContent className="max-h-[85vh] overflow-y-auto">
+                <DialogHeader><DialogTitle>Edit Supplier</DialogTitle></DialogHeader>
+                <div className="space-y-4 py-2">
+                  <div className="space-y-2">
+                    <Label>Company</Label>
+                    <Select value={editForm.company_id} onValueChange={(v) => setEditForm({ ...editForm, company_id: v })}>
+                      <SelectTrigger><SelectValue placeholder="Select CRM company" /></SelectTrigger>
+                      <SelectContent>
+                        {companies.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Supplier Code</Label>
+                      <Input value={editForm.supplier_code} onChange={(e) => setEditForm({ ...editForm, supplier_code: e.target.value })} placeholder="SUP-ACME" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Tax Number</Label>
+                      <Input value={editForm.tax_number} onChange={(e) => setEditForm({ ...editForm, tax_number: e.target.value })} placeholder="Optional" />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Payment Terms</Label>
+                      <Input value={editForm.payment_terms} onChange={(e) => setEditForm({ ...editForm, payment_terms: e.target.value })} placeholder="Net 30" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Lead Time (days)</Label>
+                      <Input type="number" value={editForm.lead_time_days} onChange={(e) => setEditForm({ ...editForm, lead_time_days: e.target.value })} />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Contact Name</Label>
+                      <Input value={editForm.contact_name} onChange={(e) => setEditForm({ ...editForm, contact_name: e.target.value })} placeholder="Alice Chen" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Contact Email</Label>
+                      <Input value={editForm.contact_email} onChange={(e) => setEditForm({ ...editForm, contact_email: e.target.value })} placeholder="alice@acme.com" />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Contact Phone</Label>
+                      <Input value={editForm.contact_phone} onChange={(e) => setEditForm({ ...editForm, contact_phone: e.target.value })} placeholder="Optional" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Preferred</Label>
+                      <Select value={editForm.is_preferred ? 'yes' : 'no'} onValueChange={(v) => setEditForm({ ...editForm, is_preferred: v === 'yes' })}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="no">No</SelectItem>
+                          <SelectItem value="yes">Yes</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <Button onClick={handleEdit} disabled={editSubmitting} className="w-full">{editSubmitting ? 'Saving...' : 'Save Changes'}</Button>
+                </div>
+              </DialogContent>
+            </Dialog>
           </div>
 
           <Card>
@@ -184,7 +293,7 @@ export default function SuppliersPage({ params }: { params: Promise<{ orgSlug: s
                   <table className="w-full">
                     <thead>
                       <tr className="border-b border-zinc-200 dark:border-zinc-800">
-                        {['Company', 'Code', 'Contact', 'Payment', 'Lead Time', 'Status'].map(h => (
+                        {['Company', 'Code', 'Contact', 'Payment', 'Lead Time', 'Status', ''].map(h => (
                           <th key={h} className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">{h}</th>
                         ))}
                       </tr>
@@ -205,6 +314,9 @@ export default function SuppliersPage({ params }: { params: Promise<{ orgSlug: s
                           <td className="px-4 py-3 text-sm text-zinc-500">{s.leadTimeDays ?? 0} days</td>
                           <td className="px-4 py-3">
                             <Badge variant={s.isActive ? 'success' : 'secondary'}>{s.isActive ? 'Active' : 'Inactive'}</Badge>
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <Button variant="ghost" size="sm" onClick={() => openEdit(s)} title="Edit supplier"><Pencil className="h-3.5 w-3.5" /></Button>
                           </td>
                         </tr>
                       ))}

@@ -20,7 +20,7 @@ export function FinanceShell({ children, orgSlug }: FinanceShellProps) {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-1 rounded-lg border border-zinc-200 bg-white p-0.5 dark:border-zinc-800 dark:bg-zinc-950 w-fit">
+      <div className="inline-flex items-center gap-1 rounded-2xl bg-neutral-200/50 p-1 dark:bg-white/[0.06] border border-black/[0.04] dark:border-white/[0.06] backdrop-blur-md w-fit shadow-xs">
         {tabs.map((tab) => {
           const active = pathname.endsWith(tab.href)
           return (
@@ -28,10 +28,10 @@ export function FinanceShell({ children, orgSlug }: FinanceShellProps) {
               key={tab.href}
               href={`/${orgSlug}/finance/${tab.href}`}
               className={cn(
-                'rounded-md px-4 py-1.5 text-sm font-medium transition-colors',
+                'whitespace-nowrap rounded-xl px-3.5 py-1.5 text-xs sm:text-[13px] font-medium transition-all duration-150',
                 active
-                  ? 'bg-zinc-900 text-white dark:bg-zinc-50 dark:text-zinc-900'
-                  : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-50'
+                  ? 'bg-white text-neutral-950 shadow-[0_1px_3px_rgba(0,0,0,0.1),0_1px_2px_rgba(0,0,0,0.06)] dark:bg-white/[0.18] dark:text-white dark:shadow-[0_2px_8px_rgba(0,0,0,0.4)] font-semibold'
+                  : 'text-neutral-600 hover:text-neutral-950 dark:text-neutral-400 dark:hover:text-white hover:bg-black/[0.02] dark:hover:bg-white/[0.04]'
               )}
             >
               {tab.label}

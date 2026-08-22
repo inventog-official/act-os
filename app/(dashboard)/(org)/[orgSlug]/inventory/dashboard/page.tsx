@@ -16,7 +16,7 @@ import { useOrganizationStore } from '@/lib/store'
 import { getDashboardMetrics, getInventoryValuation } from '@/lib/actions/inventory'
 import { listPurchaseOrders, listPurchaseRequests } from '@/lib/actions/inventory'
 import { getReorderSuggestions } from '@/lib/actions/inventory'
-import { searchProducts } from '@/lib/actions/inventory'
+import { searchProducts, listSuppliers } from '@/lib/actions/inventory'
 
 function StatCard({ title, value, icon: Icon, color, bg, sub, href }: any) {
   const body = (
@@ -63,6 +63,7 @@ export default function InventoryDashboardPage({ params }: { params: Promise<{ o
   const [purchaseRequests, setPurchaseRequests] = useState<any[]>([])
   const [reorders, setReorders] = useState<any[]>([])
   const [products, setProducts] = useState<any[]>([])
+  const [suppliers, setSuppliers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -76,14 +77,16 @@ export default function InventoryDashboardPage({ params }: { params: Promise<{ o
       listPurchaseRequests(orgId, { status: 'pending_review' }).catch(() => []),
       getReorderSuggestions(orgId).catch(() => []),
       searchProducts(orgId).catch(() => []),
+      listSuppliers(orgId).catch(() => []),
     ])
-      .then(([m, v, po, pr, rr, prod]) => {
+      .then(([m, v, po, pr, rr, prod, sup]) => {
         setMetrics(m)
         setValuation(v)
         setPurchaseOrders(po)
         setPurchaseRequests(pr)
         setReorders(rr ?? [])
         setProducts(prod ?? [])
+        setSuppliers(sup ?? [])
       })
       .finally(() => setLoading(false))
   }, [currentOrganization?.id])
@@ -129,7 +132,7 @@ export default function InventoryDashboardPage({ params }: { params: Promise<{ o
             <StatCard title="Products" value={products.length} icon={Package} color="text-blue-600" bg="bg-blue-100 dark:bg-blue-950" sub={`${m.tracked_products ?? 0} tracked in stock`} href={`/${orgSlug}/inventory/products`} />
             <StatCard title="Inventory Value" value={currency(valuation?.totalValue ?? m.total_value)} icon={Wallet} color="text-emerald-600" bg="bg-emerald-100 dark:bg-emerald-950" sub={`${valuation?.itemCount ?? 0} stock items`} href={`/${orgSlug}/inventory/reports`} />
             <StatCard title="Total Quantity" value={Number(m.total_quantity ?? 0).toLocaleString()} icon={Boxes} color="text-violet-600" bg="bg-violet-100 dark:bg-violet-950" sub="Units on hand" href={`/${orgSlug}/inventory/stock`} />
-            <StatCard title="Active Suppliers" value={3} icon={Users} color="text-teal-600" bg="bg-teal-100 dark:bg-teal-950" sub="Vendors" href={`/${orgSlug}/inventory/suppliers`} />
+            <StatCard title="Active Suppliers" value={suppliers.filter(s => s.isActive !== false).length} icon={Users} color="text-teal-600" bg="bg-teal-100 dark:bg-teal-950" sub="Vendors" href={`/${orgSlug}/inventory/suppliers`} />
 
             <StatCard title="Low Stock Items" value={Number(m.low_stock_count ?? 0)} icon={AlertTriangle} color="text-amber-600" bg="bg-amber-100 dark:bg-amber-950" sub="At or below reorder point" href={`/${orgSlug}/inventory/stock`} />
             <StatCard title="Out of Stock" value={Number(m.out_of_stock_count ?? 0)} icon={PackageX} color="text-red-600" bg="bg-red-100 dark:bg-red-950" sub="Zero available" href={`/${orgSlug}/inventory/stock`} />

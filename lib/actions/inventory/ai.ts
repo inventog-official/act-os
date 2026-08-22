@@ -3,10 +3,11 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { getInventoryTool } from '@/lib/ai/inventory-tools'
 import { getDashboardMetrics, getInventoryValuation } from './dashboard'
-import { listStockItems, listSuppliers } from './inventory'
-import { listStockMovements, getReorderSuggestions, createStockMovement, createTransfer, createAdjustment, reserveStock, releaseStock, listReservations, createReorderRule } from './stock'
-import { listPurchaseOrders, listPurchaseRequests, createPurchaseRequest, submitPurchaseRequest, approvePurchaseRequest, createPurchaseOrder, approvePurchaseOrder, sendPurchaseOrder, receiveGoods, createPurchaseReturn, listSuppliersForProduct, getSupplierById } from './procurement'
+import { listStockItems, listSuppliers, updateSupplier } from './inventory'
+import { listStockMovements, getReorderSuggestions, createStockMovement, createTransfer, createAdjustment, reserveStock, releaseStock, listReservations, createReorderRule, getStockLevel, getAvailableStock } from './stock'
+import { listPurchaseOrders, createPurchaseRequest, submitPurchaseRequest, approvePurchaseRequest, createPurchaseOrder, approvePurchaseOrder, sendPurchaseOrder, receiveGoods, createPurchaseReturn, listSuppliersForProduct, getSupplierById, getBackorderedOrders, getPurchaseRequestById, getSupplierPerformance, generateInventoryReport, cancelPurchaseOrder, updatePurchaseOrder, cancelPurchaseRequest, updatePurchaseRequest, approvePurchaseReturn, cancelPurchaseReturn, listPurchaseReturnLines } from './procurement'
 import { assignAsset, getProjectMaterialRequirements, getProjectMaterialAvailability } from './assets'
+import { createProduct as createFinanceProduct, updateProduct as updateFinanceProduct } from '@/lib/actions/finance/products'
 
 export async function inventoryAIAction(name: string, organizationId: string, args?: Record<string, unknown>) {
   const tool = getInventoryTool(name)
@@ -17,12 +18,11 @@ export async function inventoryAIAction(name: string, organizationId: string, ar
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Not authenticated')
 
-  if (tool.requiresApproval && tool.risk !== 'low') {
-    return {
-      requiresApproval: true,
-      tool: name,
-      risk: tool.risk,
-      message: 'This action requires approval before execution.',
+  const safeArgs = args ?? {}
+  if (tool.inputSchema) {
+    const parsed = tool.inputSchema.safeParse(safeArgs)
+    if (!parsed.success) {
+      throw new Error(`Invalid arguments for ${name}: ${parsed.error.issues.map(i => i.message).join('; ')}`)
     }
   }
 
@@ -31,38 +31,24 @@ export async function inventoryAIAction(name: string, organizationId: string, ar
   if (name === 'get_inventory_dashboard') results.data = await getDashboardMetrics(organizationId)
   else if (name === 'get_low_stock_items') results.data = await listStockItems(organizationId, { lowStock: true })
   else if (name === 'get_stock_level') {
-    const items = await listStockItems(organizationId, { warehouseId: args?.warehouseId ? String(args.warehouseId) : undefined })
-    const productId = args?.productId ? String(args.productId) : undefined
-    results.data = productId
-      ? items.filter((i: any) => String(i.productId ?? i.product_id) === productId)
-      : items
+    results.data = await getStockLevel(organizationId, String(safeArgs.productId), safeArgs.warehouseId ? String(safeArgs.warehouseId) : undefined)
   }
   else if (name === 'get_available_stock') {
-    const items = await listStockItems(organizationId)
-    const productId = args?.productId ? String(args.productId) : undefined
-    const rows = productId ? items.filter((i: any) => String(i.productId ?? i.product_id) === productId) : items
-    results.data = rows.map((i: any) => ({
-      product_id: i.productId ?? i.product_id,
-      warehouse_id: i.warehouseId ?? i.warehouse_id,
-      quantity_on_hand: i.quantityOnHand ?? i.quantity_on_hand,
-      reserved_quantity: i.reservedQuantity ?? i.reserved_quantity,
-      available_quantity: i.availableQuantity ?? i.available_quantity,
-    }))
+    results.data = await getAvailableStock(organizationId, safeArgs.productId ? String(safeArgs.productId) : undefined)
   }
   else if (name === 'get_stock_movements') {
     results.data = await listStockMovements(organizationId, {
-      productId: args?.productId ? String(args.productId) : undefined,
-      warehouseId: args?.warehouseId ? String(args.warehouseId) : undefined,
-      type: args?.type ? String(args.type) : undefined,
-      limit: args?.limit ? Number(args.limit) : 50,
+      productId: safeArgs.productId ? String(safeArgs.productId) : undefined,
+      warehouseId: safeArgs.warehouseId ? String(safeArgs.warehouseId) : undefined,
+      type: safeArgs.type ? String(safeArgs.type) : undefined,
+      limit: safeArgs.limit ? Number(safeArgs.limit) : 50,
     })
   }
   else if (name === 'get_reservations') {
-    results.data = await listReservations(organizationId, args?.productId ? String(args.productId) : undefined)
+    results.data = await listReservations(organizationId, safeArgs.productId ? String(safeArgs.productId) : undefined)
   }
   else if (name === 'get_backordered_orders') {
-    const po = await listPurchaseOrders(organizationId, { status: 'sent' })
-    results.data = po.map((p: any) => ({ id: p.id, po_number: p.poNumber, status: p.status, supplier_id: p.supplierId, total_amount: p.totalAmount }))
+    results.data = await getBackorderedOrders(organizationId)
   }
   else if (name === 'get_recent_suppliers') {
     const suppliers = await listSuppliers(organizationId)
@@ -70,54 +56,63 @@ export async function inventoryAIAction(name: string, organizationId: string, ar
   }
   else if (name === 'search_inventory') {
     const opts: any = {}
-    if (args?.warehouseId) opts.warehouseId = String(args.warehouseId)
-    if (args?.lowStock) opts.lowStock = true
+    if (safeArgs.warehouseId) opts.warehouseId = String(safeArgs.warehouseId)
+    if (safeArgs.lowStock) opts.lowStock = true
+    if (safeArgs.query) opts.search = String(safeArgs.query)
     results.data = await listStockItems(organizationId, opts)
   }
   else if (name === 'get_reorder_suggestions') results.data = await getReorderSuggestions(organizationId)
   else if (name === 'get_inventory_valuation') results.data = await getInventoryValuation(organizationId)
   else if (name === 'get_purchase_request') {
-    const prs = await listPurchaseRequests(organizationId)
-    if (args?.id) results.data = prs.find((p: any) => p.id === args.id) ?? null
-    else results.data = prs[0] ?? null
+    const prId = String(safeArgs.id ?? safeArgs.requestId)
+    results.data = prId ? await getPurchaseRequestById(organizationId, prId) : null
   }
-  else if (name === 'create_purchase_request') results.data = await createPurchaseRequest(organizationId, (args as any)?.input, (args as any)?.lines)
-  else if (name === 'submit_purchase_request') results.data = await submitPurchaseRequest(organizationId, String(args?.id ?? args?.requestId))
-  else if (name === 'approve_purchase_request') results.data = await approvePurchaseRequest(organizationId, String(args?.id ?? args?.requestId))
-  else if (name === 'create_stock_movement') results.data = await createStockMovement(organizationId, (args as any)?.input)
-  else if (name === 'reserve_stock') results.data = await reserveStock(organizationId, (args as any)?.input)
-  else if (name === 'release_stock') results.data = await releaseStock(organizationId, (args as any)?.input)
-  else if (name === 'adjust_stock') results.data = await createAdjustment(organizationId, (args as any)?.input)
-  else if (name === 'create_transfer' || name === 'transfer_stock') results.data = await createTransfer(organizationId, (args as any)?.input)
-  else if (name === 'create_reorder_rule') results.data = await createReorderRule(organizationId, (args as any)?.input)
-  else if (name === 'create_purchase_order') results.data = await createPurchaseOrder(organizationId, (args as any)?.input, (args as any)?.lines)
-  else if (name === 'approve_purchase_order') results.data = await approvePurchaseOrder(organizationId, String(args?.id ?? args?.poId))
-  else if (name === 'send_purchase_order') results.data = await sendPurchaseOrder(organizationId, String(args?.id ?? args?.poId))
-  else if (name === 'receive_goods') results.data = await receiveGoods(organizationId, (args as any)?.input, (args as any)?.lines)
-  else if (name === 'create_purchase_return') results.data = await createPurchaseReturn(organizationId, (args as any)?.input, (args as any)?.lines)
-  else if (name === 'create_asset_assignment') results.data = await assignAsset(organizationId, (args as any)?.input)
-  else if (name === 'get_supplier') results.data = await getSupplierById(organizationId, String(args?.id ?? args?.supplierId))
+  else if (name === 'create_purchase_request') results.data = await createPurchaseRequest(organizationId, (safeArgs as any)?.input, (safeArgs as any)?.lines)
+  else if (name === 'submit_purchase_request') results.data = await submitPurchaseRequest(organizationId, String(safeArgs?.id ?? safeArgs?.requestId))
+  else if (name === 'approve_purchase_request') results.data = await approvePurchaseRequest(organizationId, String(safeArgs?.id ?? safeArgs?.requestId))
+  else if (name === 'cancel_purchase_request') results.data = await cancelPurchaseRequest(organizationId, String(safeArgs?.id ?? safeArgs?.requestId))
+  else if (name === 'update_purchase_request') results.data = await updatePurchaseRequest(organizationId, String(safeArgs?.id ?? safeArgs?.requestId), (safeArgs as any)?.input, (safeArgs as any)?.lines)
+  else if (name === 'create_stock_movement') results.data = await createStockMovement(organizationId, (safeArgs as any)?.input)
+  else if (name === 'reserve_stock') results.data = await reserveStock(organizationId, (safeArgs as any)?.input)
+  else if (name === 'release_stock') results.data = await releaseStock(organizationId, (safeArgs as any)?.input)
+  else if (name === 'adjust_stock') results.data = await createAdjustment(organizationId, (safeArgs as any)?.input)
+  else if (name === 'create_transfer' || name === 'transfer_stock') results.data = await createTransfer(organizationId, (safeArgs as any)?.input)
+  else if (name === 'create_reorder_rule') results.data = await createReorderRule(organizationId, (safeArgs as any)?.input)
+  else if (name === 'create_purchase_order') results.data = await createPurchaseOrder(organizationId, (safeArgs as any)?.input, (safeArgs as any)?.lines)
+  else if (name === 'update_purchase_order') results.data = await updatePurchaseOrder(organizationId, String(safeArgs?.id ?? safeArgs?.poId), (safeArgs as any)?.input, (safeArgs as any)?.lines)
+  else if (name === 'approve_purchase_order') results.data = await approvePurchaseOrder(organizationId, String(safeArgs?.id ?? safeArgs?.poId))
+  else if (name === 'send_purchase_order') results.data = await sendPurchaseOrder(organizationId, String(safeArgs?.id ?? safeArgs?.poId))
+  else if (name === 'cancel_purchase_order') results.data = await cancelPurchaseOrder(organizationId, String(safeArgs?.id ?? safeArgs?.poId))
+  else if (name === 'receive_goods') results.data = await receiveGoods(organizationId, (safeArgs as any)?.input, (safeArgs as any)?.lines)
+  else if (name === 'create_purchase_return') results.data = await createPurchaseReturn(organizationId, (safeArgs as any)?.input, (safeArgs as any)?.lines)
+  else if (name === 'approve_purchase_return') results.data = await approvePurchaseReturn(organizationId, String(safeArgs?.id ?? safeArgs?.returnId))
+  else if (name === 'cancel_purchase_return') results.data = await cancelPurchaseReturn(organizationId, String(safeArgs?.id ?? safeArgs?.returnId))
+  else if (name === 'get_purchase_return_lines') results.data = await listPurchaseReturnLines(organizationId, String(safeArgs?.id ?? safeArgs?.returnId))
+  else if (name === 'create_asset_assignment') results.data = await assignAsset(organizationId, (safeArgs as any)?.input)
+  else if (name === 'get_supplier') results.data = await getSupplierById(organizationId, String(safeArgs?.id ?? safeArgs?.supplierId))
+  else if (name === 'update_supplier') results.data = await updateSupplier(organizationId, String(safeArgs?.id ?? safeArgs?.supplierId), (safeArgs as any)?.input)
   else if (name === 'find_suppliers_for_product' || name === 'get_supplier_pricing') {
-    results.data = await listSuppliersForProduct(organizationId, String(args?.productId))
-  }
-  else if (name === 'get_project_material_requirements') {
-    results.data = await getProjectMaterialRequirements(organizationId, String(args?.projectId))
-  }
-  else if (name === 'get_project_material_availability') {
-    results.data = await getProjectMaterialAvailability(organizationId, String(args?.projectId))
-  }
-  else if (name === 'generate_inventory_report') {
-    const [dashboard, valuation, lowStock, movements] = await Promise.all([
-      getDashboardMetrics(organizationId),
-      getInventoryValuation(organizationId),
-      listStockItems(organizationId, { lowStock: true }),
-      listStockMovements(organizationId, { limit: 20 }),
-    ])
-    results.data = { metrics: dashboard.metrics, valuation, lowStock, recentMovements: movements }
+    results.data = await listSuppliersForProduct(organizationId, String(safeArgs?.productId))
   }
   else if (name === 'get_supplier_performance') {
-    const suppliers = await listSuppliers(organizationId)
-    results.data = suppliers.map((s: any) => ({ id: s.id, supplierCode: s.supplierCode, rating: s.rating, ratingCount: s.ratingCount, leadTimeDays: s.leadTimeDays, isPreferred: s.isPreferred }))
+    results.data = await getSupplierPerformance(organizationId, String(safeArgs?.supplierId))
+  }
+  else if (name === 'get_project_material_requirements') {
+    results.data = await getProjectMaterialRequirements(organizationId, String(safeArgs?.projectId))
+  }
+  else if (name === 'get_project_material_availability') {
+    results.data = await getProjectMaterialAvailability(organizationId, String(safeArgs?.projectId))
+  }
+  else if (name === 'generate_inventory_report') {
+    results.data = await generateInventoryReport(organizationId)
+  }
+  else if (name === 'create_product') {
+    results.data = await createFinanceProduct({ ...(safeArgs.input as any), organizationId })
+  }
+  else if (name === 'update_product') {
+    const input = safeArgs.input as any
+    await updateFinanceProduct(String(input.id), input)
+    results.data = { success: true }
   }
   else throw new Error(`Unsupported inventory tool: ${name}`)
 

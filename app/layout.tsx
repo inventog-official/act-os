@@ -1,15 +1,20 @@
 import type { Metadata } from 'next'
-import { Geist, Geist_Mono } from 'next/font/google'
+import { Plus_Jakarta_Sans, JetBrains_Mono } from 'next/font/google'
+import { Providers } from '@/providers'
 import './globals.css'
 
-const geistSans = Geist({
-  variable: '--font-geist-sans',
+const fontSans = Plus_Jakarta_Sans({
+  variable: '--font-sans',
   subsets: ['latin'],
+  weight: ['300', '400', '500', '600', '700', '800'],
+  display: 'swap',
 })
 
-const geistMono = Geist_Mono({
-  variable: '--font-geist-mono',
+const fontMono = JetBrains_Mono({
+  variable: '--font-mono',
   subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  display: 'swap',
 })
 
 export const metadata: Metadata = {
@@ -23,17 +28,20 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning className={`${fontSans.variable} ${fontMono.variable}`}>
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem("theme");var d=t==="dark"||(t!=="light"&&t!=="dark"&&matchMedia("(prefers-color-scheme: dark)").matches);document.documentElement.classList.toggle("dark",d)}catch(e){}})()`,
+            __html: `(function(){try{var t=localStorage.getItem("theme");var isDark=t==="dark"||(!t||t==="system")&&window.matchMedia("(prefers-color-scheme: dark)").matches;if(isDark){document.documentElement.classList.add("dark");document.documentElement.classList.remove("light");document.documentElement.style.colorScheme="dark"}else{document.documentElement.classList.remove("dark");document.documentElement.classList.add("light");document.documentElement.style.colorScheme="light"}}catch(e){}})()`,
           }}
         />
       </head>
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        {children}
+      <body className="font-sans antialiased bg-background text-foreground transition-colors duration-200">
+        <Providers>
+          {children}
+        </Providers>
       </body>
     </html>
   )
 }
+

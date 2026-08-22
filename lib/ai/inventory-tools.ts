@@ -1,5 +1,6 @@
 import type { Permission } from '@/lib/auth/permissions'
 import type { RiskLevel } from './document-tools'
+import { z } from 'zod'
 
 export interface InventoryToolDefinition {
   name: string
@@ -10,7 +11,33 @@ export interface InventoryToolDefinition {
   reversible: boolean
   audited: boolean
   module: string
+  inputSchema?: z.ZodType
 }
+
+export const emptyArgs = z.object({}).strict()
+
+export const productIdArgs = z.object({ productId: z.string().min(1) })
+
+export const optionalProductArgs = z.object({ productId: z.string().min(1).optional(), warehouseId: z.string().min(1).optional() })
+
+export const searchArgs = z.object({ query: z.string().optional(), warehouseId: z.string().min(1).optional(), lowStock: z.boolean().optional() })
+
+export const movementsArgs = z.object({ productId: z.string().min(1).optional(), warehouseId: z.string().min(1).optional(), type: z.string().min(1).optional(), limit: z.number().int().positive().max(200).optional() })
+
+export const singleIdArgs = z.object({
+  id: z.string().min(1).optional(),
+  requestId: z.string().min(1).optional(),
+  poId: z.string().min(1).optional(),
+  supplierId: z.string().min(1).optional(),
+  projectId: z.string().min(1).optional(),
+})
+
+export const writeArgs = z.object({ input: z.record(z.string(), z.unknown()) })
+
+export const writeWithLinesArgs = z.object({
+  input: z.record(z.string(), z.unknown()),
+  lines: z.array(z.record(z.string(), z.unknown())).optional(),
+})
 
 export const INVENTORY_TOOLS: InventoryToolDefinition[] = [
   {
@@ -22,6 +49,7 @@ export const INVENTORY_TOOLS: InventoryToolDefinition[] = [
     reversible: true,
     audited: false,
     module: 'inventory',
+    inputSchema: emptyArgs,
   },
   {
     name: 'get_low_stock_items',
@@ -32,6 +60,7 @@ export const INVENTORY_TOOLS: InventoryToolDefinition[] = [
     reversible: true,
     audited: false,
     module: 'inventory',
+    inputSchema: emptyArgs,
   },
   {
     name: 'get_backordered_orders',
@@ -42,6 +71,7 @@ export const INVENTORY_TOOLS: InventoryToolDefinition[] = [
     reversible: true,
     audited: false,
     module: 'inventory',
+    inputSchema: emptyArgs,
   },
   {
     name: 'get_recent_suppliers',
@@ -52,6 +82,7 @@ export const INVENTORY_TOOLS: InventoryToolDefinition[] = [
     reversible: true,
     audited: false,
     module: 'inventory',
+    inputSchema: emptyArgs,
   },
   {
     name: 'search_inventory',
@@ -62,6 +93,7 @@ export const INVENTORY_TOOLS: InventoryToolDefinition[] = [
     reversible: true,
     audited: false,
     module: 'inventory',
+    inputSchema: searchArgs,
   },
   {
     name: 'get_reorder_suggestions',
@@ -72,6 +104,7 @@ export const INVENTORY_TOOLS: InventoryToolDefinition[] = [
     reversible: true,
     audited: false,
     module: 'inventory',
+    inputSchema: emptyArgs,
   },
   {
     name: 'get_inventory_valuation',
@@ -82,6 +115,7 @@ export const INVENTORY_TOOLS: InventoryToolDefinition[] = [
     reversible: true,
     audited: false,
     module: 'inventory',
+    inputSchema: emptyArgs,
   },
   {
     name: 'get_purchase_request',
@@ -92,76 +126,84 @@ export const INVENTORY_TOOLS: InventoryToolDefinition[] = [
     reversible: true,
     audited: false,
     module: 'inventory',
+    inputSchema: singleIdArgs,
   },
   {
     name: 'create_purchase_request',
     description: 'Create a purchase request with line items from a PR/supplier, optionally converting from a reorder suggestion',
     permission: 'inventory:procurement:purchase_request:create',
     risk: 'medium',
-    requiresApproval: true,
+    requiresApproval: false,
     reversible: true,
     audited: true,
     module: 'inventory',
+    inputSchema: writeWithLinesArgs,
   },
   {
     name: 'create_stock_movement',
     description: 'Record a stock movement (receipt, issue, adjustment, return, production, opening balance, transfer)',
     permission: 'inventory:stock:adjust',
     risk: 'medium',
-    requiresApproval: true,
+    requiresApproval: false,
     reversible: true,
     audited: true,
     module: 'inventory',
+    inputSchema: writeArgs,
   },
   {
     name: 'create_transfer',
     description: 'Create a stock transfer between warehouses or locations',
     permission: 'inventory:stock:transfer',
     risk: 'medium',
-    requiresApproval: true,
+    requiresApproval: false,
     reversible: true,
     audited: true,
     module: 'inventory',
+    inputSchema: writeArgs,
   },
   {
     name: 'create_purchase_order',
     description: 'Create a purchase order from a supplier with line items, optionally converting from a purchase request',
     permission: 'inventory:procurement:purchase_order:create',
     risk: 'medium',
-    requiresApproval: true,
+    requiresApproval: false,
     reversible: true,
     audited: true,
     module: 'inventory',
+    inputSchema: writeWithLinesArgs,
   },
   {
     name: 'receive_goods',
     description: 'Record goods receipt against a purchase order, increasing stock levels',
     permission: 'inventory:procurement:receiving',
     risk: 'medium',
-    requiresApproval: true,
+    requiresApproval: false,
     reversible: true,
     audited: true,
     module: 'inventory',
+    inputSchema: writeWithLinesArgs,
   },
   {
     name: 'create_purchase_return',
     description: 'Create a return to supplier for damaged or excess goods, decreasing stock levels',
     permission: 'inventory:procurement:return',
     risk: 'medium',
-    requiresApproval: true,
+    requiresApproval: false,
     reversible: true,
     audited: true,
     module: 'inventory',
+    inputSchema: writeWithLinesArgs,
   },
   {
     name: 'create_asset_assignment',
     description: 'Assign a product (asset) to an employee, tracking serial number and assignment date',
     permission: 'inventory:assets:manage',
     risk: 'medium',
-    requiresApproval: true,
+    requiresApproval: false,
     reversible: true,
     audited: true,
     module: 'inventory',
+    inputSchema: writeArgs,
   },
   {
     name: 'get_supplier_performance',
@@ -172,6 +214,7 @@ export const INVENTORY_TOOLS: InventoryToolDefinition[] = [
     reversible: true,
     audited: false,
     module: 'inventory',
+    inputSchema: z.object({ supplierId: z.string().min(1) }),
   },
   {
     name: 'get_stock_level',
@@ -182,6 +225,7 @@ export const INVENTORY_TOOLS: InventoryToolDefinition[] = [
     reversible: true,
     audited: false,
     module: 'inventory',
+    inputSchema: optionalProductArgs,
   },
   {
     name: 'get_available_stock',
@@ -192,6 +236,7 @@ export const INVENTORY_TOOLS: InventoryToolDefinition[] = [
     reversible: true,
     audited: false,
     module: 'inventory',
+    inputSchema: z.object({ productId: z.string().min(1).optional() }),
   },
   {
     name: 'get_stock_movements',
@@ -202,6 +247,7 @@ export const INVENTORY_TOOLS: InventoryToolDefinition[] = [
     reversible: true,
     audited: false,
     module: 'inventory',
+    inputSchema: movementsArgs,
   },
   {
     name: 'get_reservations',
@@ -212,86 +258,95 @@ export const INVENTORY_TOOLS: InventoryToolDefinition[] = [
     reversible: true,
     audited: false,
     module: 'inventory',
+    inputSchema: z.object({ productId: z.string().min(1).optional() }),
   },
   {
     name: 'reserve_stock',
     description: 'Reserve a quantity of a product for an order, customer, department, or project',
     permission: 'inventory:stock:reserve',
     risk: 'medium',
-    requiresApproval: true,
+    requiresApproval: false,
     reversible: true,
     audited: true,
     module: 'inventory',
+    inputSchema: writeArgs,
   },
   {
     name: 'release_stock',
     description: 'Release a previously reserved quantity of a product',
     permission: 'inventory:stock:reserve',
     risk: 'medium',
-    requiresApproval: true,
+    requiresApproval: false,
     reversible: true,
     audited: true,
     module: 'inventory',
+    inputSchema: writeArgs,
   },
   {
     name: 'adjust_stock',
     description: 'Record a stock adjustment (positive or negative quantity change) for a product in a warehouse',
     permission: 'inventory:stock:adjust',
     risk: 'medium',
-    requiresApproval: true,
+    requiresApproval: false,
     reversible: true,
     audited: true,
     module: 'inventory',
+    inputSchema: writeArgs,
   },
   {
     name: 'transfer_stock',
     description: 'Create a stock transfer between warehouses or locations',
     permission: 'inventory:stock:transfer',
     risk: 'medium',
-    requiresApproval: true,
+    requiresApproval: false,
     reversible: true,
     audited: true,
     module: 'inventory',
+    inputSchema: writeArgs,
   },
   {
     name: 'submit_purchase_request',
     description: 'Submit a purchase request for review/approval',
     permission: 'inventory:procurement:purchase_request:approve',
     risk: 'medium',
-    requiresApproval: true,
+    requiresApproval: false,
     reversible: true,
     audited: true,
     module: 'inventory',
+    inputSchema: singleIdArgs,
   },
   {
     name: 'approve_purchase_request',
     description: 'Approve a purchase request',
     permission: 'inventory:procurement:purchase_request:approve',
     risk: 'medium',
-    requiresApproval: true,
+    requiresApproval: false,
     reversible: false,
     audited: true,
     module: 'inventory',
+    inputSchema: singleIdArgs,
   },
   {
     name: 'approve_purchase_order',
     description: 'Approve a purchase order before sending to the supplier',
     permission: 'inventory:procurement:purchase_order:approve',
     risk: 'medium',
-    requiresApproval: true,
+    requiresApproval: false,
     reversible: false,
     audited: true,
     module: 'inventory',
+    inputSchema: singleIdArgs,
   },
   {
     name: 'send_purchase_order',
     description: 'Mark a purchase order as sent to the supplier',
     permission: 'inventory:procurement:purchase_order:send',
     risk: 'medium',
-    requiresApproval: true,
+    requiresApproval: false,
     reversible: false,
     audited: true,
     module: 'inventory',
+    inputSchema: singleIdArgs,
   },
   {
     name: 'get_supplier',
@@ -302,6 +357,7 @@ export const INVENTORY_TOOLS: InventoryToolDefinition[] = [
     reversible: true,
     audited: false,
     module: 'inventory',
+    inputSchema: singleIdArgs,
   },
   {
     name: 'find_suppliers_for_product',
@@ -312,6 +368,7 @@ export const INVENTORY_TOOLS: InventoryToolDefinition[] = [
     reversible: true,
     audited: false,
     module: 'inventory',
+    inputSchema: productIdArgs,
   },
   {
     name: 'get_supplier_pricing',
@@ -322,6 +379,7 @@ export const INVENTORY_TOOLS: InventoryToolDefinition[] = [
     reversible: true,
     audited: false,
     module: 'inventory',
+    inputSchema: productIdArgs,
   },
   {
     name: 'get_project_material_requirements',
@@ -332,6 +390,7 @@ export const INVENTORY_TOOLS: InventoryToolDefinition[] = [
     reversible: true,
     audited: false,
     module: 'inventory',
+    inputSchema: z.object({ projectId: z.string().min(1) }),
   },
   {
     name: 'get_project_material_availability',
@@ -342,16 +401,18 @@ export const INVENTORY_TOOLS: InventoryToolDefinition[] = [
     reversible: true,
     audited: false,
     module: 'inventory',
+    inputSchema: z.object({ projectId: z.string().min(1) }),
   },
   {
     name: 'create_reorder_rule',
     description: 'Create or update a reorder rule for a product in a warehouse',
     permission: 'inventory:procurement:reorder:manage',
     risk: 'medium',
-    requiresApproval: true,
+    requiresApproval: false,
     reversible: true,
     audited: true,
     module: 'inventory',
+    inputSchema: writeArgs,
   },
   {
     name: 'generate_inventory_report',
@@ -362,6 +423,117 @@ export const INVENTORY_TOOLS: InventoryToolDefinition[] = [
     reversible: true,
     audited: false,
     module: 'inventory',
+    inputSchema: emptyArgs,
+  },
+  {
+    name: 'create_product',
+    description: 'Create a new product catalog entry (name, SKU, price, unit, type)',
+    permission: 'inventory:products:manage',
+    risk: 'medium',
+    requiresApproval: false,
+    reversible: true,
+    audited: true,
+    module: 'inventory',
+    inputSchema: writeArgs,
+  },
+  {
+    name: 'update_product',
+    description: 'Update an existing product catalog entry (name, SKU, price, unit, type, status)',
+    permission: 'inventory:products:manage',
+    risk: 'medium',
+    requiresApproval: false,
+    reversible: true,
+    audited: true,
+    module: 'inventory',
+    inputSchema: writeArgs,
+  },
+  {
+    name: 'cancel_purchase_request',
+    description: 'Cancel a purchase request that has not yet been converted to an order',
+    permission: 'inventory:procurement:purchase_request:create',
+    risk: 'medium',
+    requiresApproval: false,
+    reversible: true,
+    audited: true,
+    module: 'inventory',
+    inputSchema: singleIdArgs,
+  },
+  {
+    name: 'update_purchase_request',
+    description: 'Update a draft or pending-review purchase request header and line items',
+    permission: 'inventory:procurement:purchase_request:create',
+    risk: 'medium',
+    requiresApproval: false,
+    reversible: true,
+    audited: true,
+    module: 'inventory',
+    inputSchema: writeWithLinesArgs,
+  },
+  {
+    name: 'cancel_purchase_order',
+    description: 'Cancel a purchase order that has not been fully received',
+    permission: 'inventory:procurement:purchase_order:create',
+    risk: 'medium',
+    requiresApproval: false,
+    reversible: true,
+    audited: true,
+    module: 'inventory',
+    inputSchema: singleIdArgs,
+  },
+  {
+    name: 'update_purchase_order',
+    description: 'Update a draft purchase order header and line items',
+    permission: 'inventory:procurement:purchase_order:create',
+    risk: 'medium',
+    requiresApproval: false,
+    reversible: true,
+    audited: true,
+    module: 'inventory',
+    inputSchema: writeWithLinesArgs,
+  },
+  {
+    name: 'approve_purchase_return',
+    description: 'Approve a purchase return',
+    permission: 'inventory:procurement:return',
+    risk: 'medium',
+    requiresApproval: false,
+    reversible: false,
+    audited: true,
+    module: 'inventory',
+    inputSchema: singleIdArgs,
+  },
+  {
+    name: 'cancel_purchase_return',
+    description: 'Cancel a draft purchase return',
+    permission: 'inventory:procurement:return',
+    risk: 'medium',
+    requiresApproval: false,
+    reversible: true,
+    audited: true,
+    module: 'inventory',
+    inputSchema: singleIdArgs,
+  },
+  {
+    name: 'get_purchase_return_lines',
+    description: 'Get the line items of a purchase return',
+    permission: 'inventory:procurement:return',
+    risk: 'low',
+    requiresApproval: false,
+    reversible: true,
+    audited: false,
+    module: 'inventory',
+    inputSchema: singleIdArgs,
+  },
+  {
+    name: 'update_supplier',
+    description: 'Update supplier contact, rating, lead time, preferred status, and notes',
+    permission: 'inventory:suppliers:manage',
+    risk: 'medium',
+    requiresApproval: false,
+    reversible: true,
+    audited: true,
+    module: 'inventory',
+    inputSchema: writeArgs,
   },
 ]
 

@@ -4,6 +4,7 @@ import {
   inventoryWarehouseSchema,
   inventoryLocationSchema,
   inventorySupplierSchema,
+  inventorySupplierUpdateSchema,
   inventorySupplierProductSchema,
   inventoryStockMovementSchema,
   inventoryTransferSchema,
@@ -21,6 +22,8 @@ import {
   inventoryProjectAllocationSchema,
   inventoryAssetAssignmentSchema,
 } from '@/lib/utils/validations'
+import { emptyArgs, productIdArgs, optionalProductArgs, singleIdArgs, writeArgs, writeWithLinesArgs, searchArgs, movementsArgs } from '@/lib/ai/inventory-tools'
+import { INVENTORY_TOOLS, getInventoryTool } from '@/lib/ai/inventory-tools'
 
 const UUID = '00000000-0000-4000-8000-000000000001'
 
@@ -268,5 +271,96 @@ describe('inventory asset assignment schema', () => {
     expect(() => inventoryAssetAssignmentSchema.parse({
       product_id: UUID, employee_id: UUID, assigned_date: '2026-08-01', serial_number: 'SN-123',
     })).not.toThrow()
+  })
+})
+
+describe('inventory supplier update schema', () => {
+  it('accepts a partial update', () => {
+    const r = inventorySupplierUpdateSchema.parse({ contact_email: 'new@acme.com', lead_time_days: 5 })
+    expect(r.contact_email).toBe('new@acme.com')
+    expect(r.lead_time_days).toBe(5)
+  })
+
+  it('accepts an empty object (no-op update)', () => {
+    expect(() => inventorySupplierUpdateSchema.parse({})).not.toThrow()
+  })
+
+  it('rejects an invalid email in partial update', () => {
+    expect(() => inventorySupplierUpdateSchema.parse({ contact_email: 'not-an-email' })).toThrow()
+  })
+})
+
+describe('inventory AI tool registry', () => {
+  it('exposes every tool via getInventoryTool', () => {
+    for (const t of INVENTORY_TOOLS) {
+      expect(getInventoryTool(t.name)?.name).toBe(t.name)
+    }
+  })
+
+  it('defines an input schema for every tool', () => {
+    for (const t of INVENTORY_TOOLS) {
+      expect(t.inputSchema, `${t.name} must define an inputSchema`).toBeDefined()
+    }
+  })
+
+  it('does not gate approval actions behind approval', () => {
+    for (const t of INVENTORY_TOOLS) {
+      if (['approve_purchase_request', 'approve_purchase_order', 'send_purchase_order', 'submit_purchase_request'].includes(t.name)) {
+        expect(t.requiresApproval, `${t.name} is itself an approval action`).toBe(false)
+      }
+    }
+  })
+
+  it('includes product management tools', () => {
+    expect(getInventoryTool('create_product')).toBeDefined()
+    expect(getInventoryTool('update_product')).toBeDefined()
+    expect(getInventoryTool('update_supplier')).toBeDefined()
+    expect(getInventoryTool('cancel_purchase_order')).toBeDefined()
+    expect(getInventoryTool('approve_purchase_return')).toBeDefined()
+  })
+})
+
+describe('inventory AI tool input schemas', () => {
+  it('emptyArgs rejects unexpected keys', () => {
+    expect(() => emptyArgs.parse({ productId: 'x' })).toThrow()
+    expect(() => emptyArgs.parse({})).not.toThrow()
+  })
+
+  it('productIdArgs requires a productId', () => {
+    expect(() => productIdArgs.parse({})).toThrow()
+    expect(() => productIdArgs.parse({ productId: UUID })).not.toThrow()
+  })
+
+  it('optionalProductArgs allows empty or product-only', () => {
+    expect(() => optionalProductArgs.parse({})).not.toThrow()
+    expect(() => optionalProductArgs.parse({ productId: UUID })).not.toThrow()
+  })
+
+  it('singleIdArgs accepts an id in any supported alias', () => {
+    expect(() => singleIdArgs.parse({ id: UUID })).not.toThrow()
+    expect(() => singleIdArgs.parse({ poId: UUID, supplierId: UUID })).not.toThrow()
+    expect(() => singleIdArgs.parse({ requestId: UUID })).not.toThrow()
+  })
+
+  it('writeArgs requires an object input', () => {
+    expect(() => writeArgs.parse({})).toThrow()
+    expect(() => writeArgs.parse({ input: { product_id: UUID, quantity: 5 } })).not.toThrow()
+    expect(() => writeArgs.parse({ input: 'not-an-object' })).toThrow()
+  })
+
+  it('writeWithLinesArgs requires input and optional lines array', () => {
+    expect(() => writeWithLinesArgs.parse({ input: {} })).not.toThrow()
+    expect(() => writeWithLinesArgs.parse({ input: {}, lines: [{ product_id: UUID }] })).not.toThrow()
+    expect(() => writeWithLinesArgs.parse({ input: {}, lines: 'nope' })).toThrow()
+  })
+
+  it('searchArgs accepts query and filters', () => {
+    expect(() => searchArgs.parse({ query: 'wrench', lowStock: true, warehouseId: UUID })).not.toThrow()
+    expect(() => searchArgs.parse({ lowStock: 'yes' })).toThrow()
+  })
+
+  it('movementsArgs constrains limit', () => {
+    expect(() => movementsArgs.parse({ limit: 500 })).toThrow()
+    expect(() => movementsArgs.parse({ limit: 50, type: 'receipt' })).not.toThrow()
   })
 })

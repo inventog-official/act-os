@@ -29,7 +29,7 @@ export function MobileNav({ orgSlug }: MobileNavProps) {
   ]
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#050505]/95 backdrop-blur-xl border-t border-white/[0.08] flex items-center justify-around h-16 px-2 font-mono text-[10px]">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/90 dark:bg-[#050505]/95 backdrop-blur-xl border-t border-neutral-200 dark:border-white/[0.08] flex items-center justify-around h-16 px-2 font-mono text-[10px] text-neutral-900 dark:text-white">
       {tabs.map((tab) => {
         const Icon = tab.icon
         return (
@@ -38,11 +38,13 @@ export function MobileNav({ orgSlug }: MobileNavProps) {
             href={tab.href}
             className={cn(
               'flex flex-col items-center justify-center flex-1 py-1 transition-colors relative gap-1',
-              tab.active ? 'text-white font-semibold' : 'text-neutral-500 hover:text-neutral-300'
+              tab.active
+                ? 'text-neutral-900 dark:text-white font-semibold'
+                : 'text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-200'
             )}
           >
             {tab.active && (
-              <span className="absolute top-0 w-8 h-[2px] bg-white rounded-full" />
+              <span className="absolute top-0 w-8 h-[2px] bg-neutral-900 dark:bg-white rounded-full" />
             )}
             <Icon className="h-4 w-4" />
             <span>{tab.label}</span>
@@ -52,7 +54,7 @@ export function MobileNav({ orgSlug }: MobileNavProps) {
 
       <button
         onClick={toggleSidebar}
-        className="flex flex-col items-center justify-center flex-1 py-1 text-neutral-500 hover:text-neutral-300 transition-colors gap-1"
+        className="flex flex-col items-center justify-center flex-1 py-1 text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-200 transition-colors gap-1"
       >
         <Menu className="h-4 w-4" />
         <span>Menu</span>
