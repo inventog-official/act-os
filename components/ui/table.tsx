@@ -3,14 +3,16 @@ import { cn } from '@/lib/utils'
 
 const Table = forwardRef<HTMLTableElement, HTMLAttributes<HTMLTableElement>>(
   ({ className, ...props }, ref) => (
-    <table ref={ref} className={cn('w-full caption-bottom text-sm', className)} {...props} />
+    <div className="w-full overflow-auto">
+      <table ref={ref} className={cn('w-full caption-bottom text-sm font-sans', className)} {...props} />
+    </div>
   )
 )
 Table.displayName = 'Table'
 
 const TableHeader = forwardRef<HTMLTableSectionElement, HTMLAttributes<HTMLTableSectionElement>>(
   ({ className, ...props }, ref) => (
-    <thead ref={ref} className={cn('[&_tr]:border-b border-zinc-200 dark:border-zinc-800', className)} {...props} />
+    <thead ref={ref} className={cn('bg-neutral-50/80 dark:bg-white/[0.03] border-b border-black/[0.06] dark:border-white/[0.08]', className)} {...props} />
   )
 )
 TableHeader.displayName = 'TableHeader'
@@ -27,7 +29,7 @@ const TableRow = forwardRef<HTMLTableRowElement, HTMLAttributes<HTMLTableRowElem
     <tr
       ref={ref}
       className={cn(
-        'border-b border-zinc-100 dark:border-zinc-800/50 transition-colors hover:bg-zinc-50/50 dark:hover:bg-zinc-900/50',
+        'border-b border-black/[0.04] dark:border-white/[0.06] transition-colors hover:bg-black/[0.02] dark:hover:bg-white/[0.03]',
         className
       )}
       {...props}
@@ -41,7 +43,7 @@ const TableHead = forwardRef<HTMLTableCellElement, ThHTMLAttributes<HTMLTableCel
     <th
       ref={ref}
       className={cn(
-        'h-11 px-4 text-left align-middle text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400',
+        'h-10 px-4 text-left align-middle text-[11px] font-semibold tracking-wider text-neutral-400 uppercase font-sans',
         className
       )}
       {...props}
@@ -52,7 +54,7 @@ TableHead.displayName = 'TableHead'
 
 const TableCell = forwardRef<HTMLTableCellElement, TdHTMLAttributes<HTMLTableCellElement>>(
   ({ className, ...props }, ref) => (
-    <td ref={ref} className={cn('p-4 align-middle', className)} {...props} />
+    <td ref={ref} className={cn('p-3.5 sm:p-4 align-middle text-neutral-800 dark:text-neutral-200 text-xs sm:text-sm', className)} {...props} />
   )
 )
 TableCell.displayName = 'TableCell'

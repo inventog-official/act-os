@@ -20,28 +20,48 @@ const data = [
 
 export function RevenueChart() {
   return (
-    <Card className="lg:col-span-2">
-      <CardHeader>
-        <CardTitle>Revenue Overview</CardTitle>
+    <Card className="lg:col-span-2 rounded-2xl border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-[#121216]/90 shadow-xs">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base font-semibold tracking-tight font-sans text-neutral-900 dark:text-white">
+          Revenue Overview
+        </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="h-[300px]">
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={data}>
+            <AreaChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
               <defs>
-                <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#18181b" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#18181b" stopOpacity={0} />
+                <linearGradient id="appleRevenueGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#007AFF" stopOpacity={0.35} />
+                  <stop offset="90%" stopColor="#007AFF" stopOpacity={0.0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e4e4e7" />
-              <XAxis dataKey="name" tick={{ fontSize: 12, fill: '#a1a1aa' }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 12, fill: '#a1a1aa' }} axisLine={false} tickLine={false} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="currentColor" className="text-black/[0.04] dark:text-white/[0.06]" />
+              <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#8E8E93' }} axisLine={false} tickLine={false} dy={8} />
+              <YAxis tick={{ fontSize: 11, fill: '#8E8E93' }} axisLine={false} tickLine={false} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
               <Tooltip
-                contentStyle={{ borderRadius: 8, border: '1px solid #e4e4e7', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}
-                labelStyle={{ fontWeight: 600, marginBottom: 4 }}
+                contentStyle={{
+                  borderRadius: 14,
+                  border: '1px solid rgba(255,255,255,0.15)',
+                  backgroundColor: 'rgba(20, 20, 24, 0.9)',
+                  backdropFilter: 'blur(16px)',
+                  boxShadow: '0 12px 30px rgba(0,0,0,0.25)',
+                  color: '#FFFFFF',
+                  fontSize: 12,
+                  padding: '8px 12px',
+                }}
+                labelStyle={{ fontWeight: 600, color: '#FFFFFF', marginBottom: 2 }}
+                formatter={(val) => [`$${Number(val).toLocaleString()}`, 'Revenue']}
               />
-              <Area type="monotone" dataKey="revenue" stroke="#18181b" fill="url(#revenueGradient)" strokeWidth={2} />
+              <Area
+                type="monotone"
+                dataKey="revenue"
+                stroke="#007AFF"
+                fill="url(#appleRevenueGradient)"
+                strokeWidth={2.5}
+                dot={false}
+                activeDot={{ r: 5, fill: '#007AFF', stroke: '#FFFFFF', strokeWidth: 2 }}
+              />
             </AreaChart>
           </ResponsiveContainer>
         </div>

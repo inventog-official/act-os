@@ -4,33 +4,44 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 const data = [
-  { stage: 'New', value: 85000, fill: '#3b82f6' },
-  { stage: 'Qualified', value: 120000, fill: '#8b5cf6' },
-  { stage: 'Proposal', value: 95000, fill: '#6366f1' },
-  { stage: 'Negotiation', value: 150000, fill: '#ec4899' },
-  { stage: 'Won', value: 200000, fill: '#10b981' },
-  { stage: 'Lost', value: 45000, fill: '#ef4444' },
+  { stage: 'New', value: 85000, fill: '#0A84FF' },
+  { stage: 'Qualified', value: 120000, fill: '#5E5CE6' },
+  { stage: 'Proposal', value: 95000, fill: '#BF5AF2' },
+  { stage: 'Negotiation', value: 150000, fill: '#FF375F' },
+  { stage: 'Won', value: 200000, fill: '#30D158' },
+  { stage: 'Lost', value: 45000, fill: '#8E8E93' },
 ]
 
 export function DealsChart() {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Pipeline Value by Stage</CardTitle>
+    <Card className="rounded-2xl border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-[#121216]/90 shadow-xs">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base font-semibold tracking-tight font-sans text-neutral-900 dark:text-white">
+          Pipeline Value by Stage
+        </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="h-[300px]">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={data}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e4e4e7" />
-              <XAxis dataKey="stage" tick={{ fontSize: 12, fill: '#a1a1aa' }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 12, fill: '#a1a1aa' }} axisLine={false} tickLine={false} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
+            <BarChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="currentColor" className="text-black/[0.04] dark:text-white/[0.06]" />
+              <XAxis dataKey="stage" tick={{ fontSize: 11, fill: '#8E8E93' }} axisLine={false} tickLine={false} dy={8} />
+              <YAxis tick={{ fontSize: 11, fill: '#8E8E93' }} axisLine={false} tickLine={false} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
               <Tooltip
-                contentStyle={{ borderRadius: 8, border: '1px solid #e4e4e7', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}
-                labelStyle={{ fontWeight: 600 }}
+                contentStyle={{
+                  borderRadius: 14,
+                  border: '1px solid rgba(255,255,255,0.15)',
+                  backgroundColor: 'rgba(20, 20, 24, 0.9)',
+                  backdropFilter: 'blur(16px)',
+                  boxShadow: '0 12px 30px rgba(0,0,0,0.25)',
+                  color: '#FFFFFF',
+                  fontSize: 12,
+                  padding: '8px 12px',
+                }}
+                labelStyle={{ fontWeight: 600, color: '#FFFFFF', marginBottom: 2 }}
                 formatter={(value) => [`$${Number(value).toLocaleString()}`, 'Value']}
               />
-              <Bar dataKey="value" radius={[4, 4, 0, 0]} maxBarSize={48} />
+              <Bar dataKey="value" radius={[8, 8, 8, 8]} maxBarSize={36} />
             </BarChart>
           </ResponsiveContainer>
         </div>

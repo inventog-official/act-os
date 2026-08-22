@@ -5,6 +5,9 @@ import { db } from '@/db'
 import { inventoryActivities } from '@/db/schema/inventory'
 import { requirePermission, type Permission } from '@/lib/auth/permissions'
 
+import { organizations, organizationMembers } from '@/db/schema'
+import { eq } from 'drizzle-orm'
+
 export async function getCurrentUser() {
   const supabase = await createServerSupabaseClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -16,13 +19,30 @@ export async function getOrganizationId() {
   const supabase = await createServerSupabaseClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Not authenticated')
-  const { data: member, error } = await supabase
-    .from('organization_members')
-    .select('organization_id')
-    .eq('user_id', user.id)
-    .single()
-  if (error || !member) throw new Error('Not a member of any organization')
-  return member.organization_id as string
+
+  // 1. Check membership
+  const member = await db
+    .select({ organizationId: organizationMembers.organizationId })
+    .from(organizationMembers)
+    .where(eq(organizationMembers.userId, user.id))
+    .limit(1)
+
+  if (member[0]?.organizationId) {
+    return member[0].organizationId
+  }
+
+  // 2. Check ownership
+  const owned = await db
+    .select({ id: organizations.id })
+    .from(organizations)
+    .where(eq(organizations.ownerId, user.id))
+    .limit(1)
+
+  if (owned[0]?.id) {
+    return owned[0].id
+  }
+
+  throw new Error('Not a member of any organization')
 }
 
 export async function guardInventoryPermission(organizationId: string, permission: Permission) {

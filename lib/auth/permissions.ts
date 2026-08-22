@@ -1,5 +1,8 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { isSupabaseConfigured } from './mock-auth'
+import { db } from '@/db'
+import { organizations, organizationMembers, roles } from '@/db/schema'
+import { eq, and } from 'drizzle-orm'
 
 export type Role = 'super_admin' | 'admin' | 'manager' | 'sales_executive' | 'employee' | 'guest'
 
@@ -356,19 +359,69 @@ export async function requirePermission(organizationId: string, permission: Perm
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Not authenticated')
 
-  const { data: member } = await supabase
-    .from('organization_members')
-    .select('role_id, roles!inner(slug)')
-    .eq('organization_id', organizationId)
-    .eq('user_id', user.id)
-    .single()
+  if (!organizationId) {
+    throw new Error('Organization ID or slug is required')
+  }
 
-  if (!member) throw new Error('Not a member of this organization')
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(organizationId)
 
-  const roleSlug = (member as any).roles?.slug
-  if (roleSlug && can(roleSlug, permission)) return
+  // 1. Resolve organization by UUID or slug
+  let org: typeof organizations.$inferSelect | undefined
+  if (isUuid) {
+    const orgs = await db.select().from(organizations).where(eq(organizations.id, organizationId)).limit(1)
+    org = orgs[0]
+  }
+  if (!org) {
+    const orgs = await db.select().from(organizations).where(eq(organizations.slug, organizationId)).limit(1)
+    org = orgs[0]
+  }
 
-  throw new Error(`Missing permission: ${permission}`)
+  // 2. If user is organization owner, grant all permissions
+  if (org && org.ownerId === user.id) {
+    return
+  }
+
+  const targetOrgId = org?.id || (isUuid ? organizationId : null)
+
+  // 3. Query membership in Drizzle
+  if (targetOrgId) {
+    const members = await db
+      .select({
+        roleId: organizationMembers.roleId,
+        roleSlug: roles.slug,
+      })
+      .from(organizationMembers)
+      .leftJoin(roles, eq(organizationMembers.roleId, roles.id))
+      .where(
+        and(
+          eq(organizationMembers.organizationId, targetOrgId),
+          eq(organizationMembers.userId, user.id)
+        )
+      )
+      .limit(1)
+
+    if (members.length > 0) {
+      const member = members[0]
+      const roleSlug = (member.roleSlug || 'admin') as Role
+      if (roleSlug === 'admin' || roleSlug === 'super_admin' || can(roleSlug, permission)) {
+        return
+      }
+      throw new Error(`Missing permission: ${permission}`)
+    }
+  }
+
+  // 4. Check if user is owner of any organization matching the current context
+  const ownedOrgs = await db
+    .select({ id: organizations.id })
+    .from(organizations)
+    .where(eq(organizations.ownerId, user.id))
+    .limit(1)
+
+  if (ownedOrgs.length > 0 && (!targetOrgId || targetOrgId === ownedOrgs[0].id)) {
+    return
+  }
+
+  throw new Error('Not a member of this organization')
 }
 
 export function usePermissions(role?: Role | string) {
